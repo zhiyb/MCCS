@@ -1,7 +1,7 @@
 # Author: Yubo Zhi (normanzyb@gmail.com)
 
 PRG	= mccs
-SRC	= main.cpp network.cpp handler.cpp
+SRC	= main.cpp network.cpp handler.cpp packet.cpp client.cpp
 
 #CROSS	= mipsel-linux-
 OPTIMIZE	= -g -O3
@@ -37,4 +37,4 @@ $(PRG): $(OBJ)
 # Clean up
 .PHONY: clean
 clean:
-	rm -f $(OBJ) *.d *.d.* $(PRG)
+	rm -f $(OBJ) $(OBJ:%.o=%.d) $(PRG)

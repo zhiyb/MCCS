@@ -7,6 +7,8 @@
 #include <iomanip>
 #include "network.h"
 #include "handler.h"
+#include "packet.h"
+#include "client.h"
 
 using std::vector;
 
@@ -23,13 +25,14 @@ void Handler::process()
 		goto error;
 	syslog(LOG_INFO, "[%p] Connection established from %s\n", this,
 			Network::saddrtostr(&addr).c_str());
+	c.handler(this);
 
 	for (;;) {
 		pkt_t v;
 		readPacket(&v);
 		if (err())
 			goto close;
-		dumpPacket(&v);
+		c.packet(&v);
 	}
 	_errno = 0;
 	goto close;
@@ -41,21 +44,6 @@ close:
 		syslog(LOG_WARNING, "[%p] Error: %s\n", this, strerror(err()));
 	close(_sd);
 	_sd = -1;
-}
-
-void Handler::dumpPacket(pkt_t *v)
-{
-	std::stringstream ss;
-	ss << std::hex << std::setfill('0') << std::setw(2);
-	size_t len = v->size();
-	const uint8_t *p = v->data();
-	while (len--) {
-		ss << "0x" << (unsigned int)*p++;
-		if (len != 0)
-			ss << ", ";
-	}
-	syslog(LOG_DEBUG, "[%p] Packet (%lu): {%s}", this,
-			v->size(), ss.str().c_str());
 }
 
 void Handler::readPacket(pkt_t *v)
@@ -93,7 +81,7 @@ uint32_t Handler::readVarInt()
 	uint32_t v = 0;
 	p = buf;
 	for (i = 0; i != 5 * 7; i += 7) {
-		uint8_t c = *p;
+		uint8_t c = *p++;
 		v |= (uint32_t)(c) << i;
 		if (!(c & 0x80))
 			break;

@@ -1,33 +1,30 @@
 #ifndef HANDLER_H
 #define HANDLER_H
 
-#include <stdint.h>
-#include <vector>
 #include <thread>
-
-typedef std::vector<uint8_t> pkt_t;
+#include "packet.h"
+#include "client.h"
 
 class Handler
 {
 public:
 	Handler(int sd);
 	void process();
-	bool closed() {return _sd == -1;}
+	bool closed() const {return _sd == -1;}
 
-	std::thread *thread() {return _th;}
+	std::thread *thread() const {return _th;}
 	void thread(std::thread *th) {_th = th;}
 
-	int err() {return _errno;}
+	int err() const {return _errno;}
 
 	static void threadFunc(Handler *h) {h->process();}
 
 private:
-	void dumpPacket(pkt_t *v);
-
 	void readPacket(pkt_t *v);
 	uint32_t readVarInt();
 	uint32_t readVarLong();
 
+	Client c;
 	int _errno;
 	int _sd;
 	std::thread *_th;

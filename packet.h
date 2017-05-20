@@ -7,6 +7,7 @@
 
 typedef std::vector<uint8_t> pkt_t;
 
+void pktPushLong(pkt_t *pkt, int64_t v);
 void pktPushVarInt(pkt_t *pkt, int32_t v);
 void pktPushString(pkt_t *pkt, std::string str);
 
@@ -30,7 +31,9 @@ public:
 	void dump(const std::string &s) const;
 
 protected:
-	int readVarInt();
+	int64_t readLong();
+	int32_t readVarInt();
+	int64_t readVarLong();
 	std::string readString(uint32_t size);
 	uint16_t readUShort();
 

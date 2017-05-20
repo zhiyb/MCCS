@@ -76,12 +76,20 @@ void Client::status(const Packet *p)
 	switch (p->id()) {
 	case 0x00:	// Status request
 		pktPushVarInt(&pkt, 0x00);		// ID = 0x00
-		pktPushString(&pkt, ::status.toJson());	// JSON response
-		hdr->sendPacket(&pkt);
+		pktPushString(&pkt, ::status.toJson());	// JSON reshandshakeponse
 		break;
+	case 0x01: {	// Ping
+		PktPing pp(*p);
+		if (pp.err())
+			goto drop;
+		pktPushVarInt(&pkt, 0x01);		// ID = 0x01
+		pktPushLong(&pkt, pp.payload());	// Ping Pong!
+		break;
+	}
 	default:
 		goto drop;
 	}
+	hdr->sendPacket(&pkt);
 	return;
 
 drop:

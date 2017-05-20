@@ -6,6 +6,14 @@
 #include <iomanip>
 #include "packet.h"
 
+void pktPushLong(pkt_t *pkt, int64_t v)
+{
+	int32_t tmp = ntohl(v >> 32);
+	pkt->insert(pkt->end(), (uint8_t *)&tmp, (uint8_t *)&tmp + 4);
+	tmp = ntohl(v & 0xffffffff);
+	pkt->insert(pkt->end(), (uint8_t *)&tmp, (uint8_t *)&tmp + 4);
+}
+
 void pktPushVarInt(pkt_t *pkt, int32_t v)
 {
 	do {
@@ -23,13 +31,46 @@ void pktPushString(pkt_t *pkt, std::string str)
 	pkt->insert(pkt->end(), str.begin(), str.end());
 }
 
-int Packet::readVarInt()
+int64_t Packet::readLong()
+{
+	if (len < 8) {
+		_errno = ENODATA;
+		return 0;
+	}
+	int64_t v = 0;
+	int32_t tmp;
+	memcpy(&tmp, p, 4);
+	v |= (int64_t)ntohl(tmp) << 32;
+	p += 4;
+	memcpy(&tmp, p, 4);
+	v |= (int64_t)ntohl(tmp);
+	p += 4;
+	len -= 8;
+	return v;
+}
+
+int32_t Packet::readVarInt()
 {
 	int i, max = len > 5 ? 5 : len;
 	int v = 0;
 	for (i = 0; i != max;) {
 		uint8_t c = *p++;
 		v |= (uint32_t)(c & 0x7f) << (i++ * 7);
+		if (!(c & 0x80))
+			break;
+	}
+	_errno = i == max && (*(p - 1) & 0x80) ? EOVERFLOW : 0;
+	len -= i;
+	return v;
+}
+
+int64_t Packet::readVarLong()
+{
+	int i, max = len > 10 ? 10 : len;
+	int v = 0;
+	for (i = 0; i != max;) {
+		uint8_t c = *p++;
+		v |= (uint64_t)(c & 0x7f) << (i++ * 7);
 		if (!(c & 0x80))
 			break;
 	}

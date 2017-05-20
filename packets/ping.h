@@ -27,7 +27,7 @@ public:
 		Packet::dump(ss.str());
 	}
 
-	int32_t payload() {return _payload;}
+	int32_t payload() const {return _payload;}
 
 private:
 	int64_t _payload;

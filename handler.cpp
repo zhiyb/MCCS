@@ -23,15 +23,17 @@ void Handler::process()
 	socklen_t len = sizeof(addr);
 	if (::getpeername(_sd, (struct sockaddr *)&addr, &len) == -1)
 		goto error;
-	syslog(LOG_INFO, "[%p] Connection established from %s\n", this,
-			Network::saddrtostr(&addr).c_str());
+	//syslog(LOG_INFO, "[%p] Connection established from %s\n", this,
+	//		Network::saddrtostr(&addr).c_str());
 	c.handler(this);
 
 	for (;;) {
 		pkt_t v;
 		readPacket(&v);
-		if (err())
+		if (err()) {
+			c.disconnect(err());
 			goto close;
+		}
 		c.packet(&v);
 	}
 	_errno = 0;
@@ -39,9 +41,8 @@ void Handler::process()
 
 error:
 	_errno = errno;
+	syslog(LOG_WARNING, "[%p] Error: %s\n", this, strerror(err()));
 close:
-	if (err())
-		syslog(LOG_WARNING, "[%p] Error: %s\n", this, strerror(err()));
 	close(_sd);
 	_sd = -1;
 }

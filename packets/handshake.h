@@ -1,6 +1,7 @@
 #ifndef PKT_HANDSHAKE_H
 #define PKT_HANDSHAKE_H
 
+#include <string>
 #include <sstream>
 #include "../packet.h"
 
@@ -37,7 +38,7 @@ public:
 		Packet::dump(ss.str());
 	}
 
-	int32_t next() {return _next;}
+	int32_t next() const {return _next;}
 
 private:
 	int32_t _proto;

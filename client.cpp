@@ -27,6 +27,8 @@ void Client::packet(const pkt_t *v)
 	case Status:
 		status(p);
 		break;
+	case Login:
+		goto drop;
 	default:
 		goto drop;
 	}

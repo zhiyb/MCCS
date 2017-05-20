@@ -1,5 +1,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <unistd.h>
 #include <string.h>
 #include <syslog.h>
@@ -26,11 +28,11 @@ void Network::close()
 
 bool Network::listen()
 {
-	int opt = 1;
+	int flag = 1;
 	sd.listen = ::socket(AF_INET, SOCK_STREAM, 0);
 	if (sd.listen == -1)
 		goto error;
-	setsockopt(sd.listen, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
+	setsockopt(sd.listen, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET;
@@ -56,6 +58,9 @@ bool Network::process()
 		int s = ::accept(sd.listen, NULL, NULL);
 		if (s < 0)
 			goto error;
+		int flag = 1;
+		setsockopt(s, IPPROTO_TCP, TCP_NODELAY,
+				(void *)&flag, sizeof(flag));
 		Handler *h = new Handler(s);
 		std::thread *th = new std::thread(Handler::threadFunc, h);
 		h->thread(th);

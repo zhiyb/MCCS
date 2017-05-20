@@ -6,6 +6,23 @@
 #include <iomanip>
 #include "packet.h"
 
+void pktPushVarInt(pkt_t *pkt, int32_t v)
+{
+	do {
+		uint8_t c = v & 0x7f;
+		v >>= 7;
+		if (v)
+			c |= 0x80;
+		pkt->push_back(c);
+	} while (v);
+}
+
+void pktPushString(pkt_t *pkt, std::string str)
+{
+	pktPushVarInt(pkt, str.size());
+	pkt->insert(pkt->end(), str.begin(), str.end());
+}
+
 int Packet::readVarInt()
 {
 	int i, max = len > 5 ? 5 : len;

@@ -2,6 +2,7 @@
 #include <syslog.h>
 #include "client.h"
 #include "handler.h"
+#include "status.h"
 #include "packets/packets.h"
 
 Client::Client()
@@ -24,12 +25,7 @@ void Client::packet(const pkt_t *v)
 		handshake(p);
 		break;
 	case Status:
-		switch (p->id()) {
-		case 0x00:	// Status request
-			break;
-		default:
-			goto drop;
-		}
+		status(p);
 		break;
 	default:
 		goto drop;
@@ -60,6 +56,8 @@ void Client::handshake(const Packet *p)
 		default:
 			goto drop;
 		}
+		p->dump();
+		delete phs;
 		break;
 	default:
 		goto drop;
@@ -70,4 +68,22 @@ drop:
 	p->dump();
 	if (phs)
 		delete phs;
+}
+
+void Client::status(const Packet *p)
+{
+	pkt_t pkt;
+	switch (p->id()) {
+	case 0x00:	// Status request
+		pktPushVarInt(&pkt, 0x00);		// ID = 0x00
+		pktPushString(&pkt, ::status.toJson());	// JSON response
+		hdr->sendPacket(&pkt);
+		break;
+	default:
+		goto drop;
+	}
+	return;
+
+drop:
+	p->dump();
 }

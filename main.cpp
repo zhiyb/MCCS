@@ -2,6 +2,7 @@
 #include <string.h>
 #include <iostream>
 #include "network.h"
+#include "status.h"
 
 using std::cerr;
 using std::cout;
@@ -9,7 +10,7 @@ using std::endl;
 
 int main(int argc, char *argv[])
 {
-	openlog("MCCS", LOG_PERROR, LOG_USER);
+	openlog("MCCS", LOG_PERROR | LOG_PID, LOG_USER);
 
 	Network n;
 	if (!n.listen()) {

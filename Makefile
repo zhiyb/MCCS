@@ -1,11 +1,11 @@
 # Author: Yubo Zhi (normanzyb@gmail.com)
 
 PRG	= mccs
-SRC	= main.cpp network.cpp handler.cpp packet.cpp client.cpp
+SRC	= main.cpp network.cpp handler.cpp packet.cpp client.cpp status.cpp
 
 #CROSS	= mipsel-linux-
 OPTIMIZE	= -g -O3
-CXXFLAGS	= -Wall -Werror -std=c++11
+CXXFLAGS	= -Wall -Werror -std=c++11 -Irapidjson/include
 LIBS	= -lpthread -lm
 
 OBJ	= $(SRC:%.cpp=%.o)

@@ -7,6 +7,9 @@
 
 typedef std::vector<uint8_t> pkt_t;
 
+void pktPushVarInt(pkt_t *pkt, int32_t v);
+void pktPushString(pkt_t *pkt, std::string str);
+
 class Packet
 {
 public:

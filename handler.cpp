@@ -46,6 +46,14 @@ close:
 	_sd = -1;
 }
 
+void Handler::sendPacket(const pkt_t *v)
+{
+	pkt_t header;
+	pktPushVarInt(&header, v->size());
+	write(_sd, header.data(), header.size());
+	write(_sd, v->data(), v->size());
+}
+
 void Handler::readPacket(pkt_t *v)
 {
 	uint32_t len = readVarInt();

@@ -2,6 +2,7 @@
 #define PKT_LOGIN_H
 
 #include <string>
+#include <vector>
 #include <sstream>
 #include "../packet.h"
 
@@ -16,7 +17,6 @@ public:
 		if (err())
 			goto error;
 		return;
-
 	error:
 		_valid = false;
 	}
@@ -32,6 +32,43 @@ public:
 
 private:
 	std::string _playerName;
+};
+
+class PktLoginResponse : public Packet
+{
+public:
+	PktLoginResponse(const Packet &p) : Packet(p)
+	{
+		if (!valid())
+			return;
+		int32_t len = readVarInt();
+		if (err())
+			goto error;
+		if (!readByteArray(&_secret, len))
+			goto error;
+		len = readVarInt();
+		if (err())
+			goto error;
+		if (!readByteArray(&_token, len))
+			goto error;
+		return;
+	error:
+		_valid = false;
+	}
+
+	virtual void dump() const
+	{
+		std::stringstream ss;
+		ss << "Encryption response, secret(" << _secret.size()
+			<< "), token(" << _token.size() << ')';
+		Packet::dump(ss.str());
+	}
+
+	std::vector<uint8_t> &secret() {return _secret;}
+	std::vector<uint8_t> &token() {return _token;}
+
+private:
+	std::vector<uint8_t> _secret, _token;
 };
 
 #endif

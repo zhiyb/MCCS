@@ -1,10 +1,28 @@
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
+#include <stdio.h>
 #include <arpa/inet.h>
 #include <sstream>
+#include <iostream>
 #include <iomanip>
 #include "packet.h"
+
+void pktPushBoolean(pkt_t *pkt, bool v)
+{
+	pkt->push_back(v ? 0x01 : 0x00);
+}
+
+void pktPushUByte(pkt_t *pkt, uint8_t v)
+{
+	pkt->push_back(v);
+}
+
+void pktPushInt(pkt_t *pkt, int32_t v)
+{
+	int32_t tmp = ntohl(v);
+	pkt->insert(pkt->end(), (uint8_t *)&tmp, (uint8_t *)&tmp + 4);
+}
 
 void pktPushLong(pkt_t *pkt, int64_t v)
 {
@@ -29,6 +47,11 @@ void pktPushString(pkt_t *pkt, std::string str)
 {
 	pktPushVarInt(pkt, str.size());
 	pkt->insert(pkt->end(), str.begin(), str.end());
+}
+
+void pktPushByteArray(pkt_t *pkt, const void *p, const size_t size)
+{
+	pkt->insert(pkt->end(), (char *)p, (char *)p + size);
 }
 
 int64_t Packet::readLong()
@@ -94,6 +117,19 @@ std::string Packet::readString(uint32_t size)
 	return s;
 }
 
+bool Packet::readByteArray(std::vector<uint8_t> *v, uint32_t size)
+{
+	if (len < size) {
+		_errno = ENODATA;
+		return false;
+	}
+	std::vector<uint8_t> vec(p, p + size);
+	v->swap(vec);
+	p += size;
+	len -= size;
+	return true;
+}
+
 uint16_t Packet::readUShort()
 {
 	_errno = len < 2 ? ENODATA : 0;
@@ -117,7 +153,7 @@ void Packet::dump(const std::string &msg) const
 		if (len != 0)
 			ss << ", ";
 	}
-	syslog(LOG_DEBUG, "Packet%s (0x%02x) %s {%s}\n%s",
+	fprintf(stderr, "Packet%s (0x%02x) %s {%s}\n%s",
 			valid() ? "" : " invalid",
 			id(), msg.c_str(), ss.str().c_str(),
 			err() ? strerror(err()) : "");

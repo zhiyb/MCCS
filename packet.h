@@ -7,9 +7,13 @@
 
 typedef std::vector<uint8_t> pkt_t;
 
+void pktPushBoolean(pkt_t *pkt, bool v);
+void pktPushUByte(pkt_t *pkt, uint8_t v);
+void pktPushInt(pkt_t *pkt, int32_t v);
 void pktPushLong(pkt_t *pkt, int64_t v);
 void pktPushVarInt(pkt_t *pkt, int32_t v);
 void pktPushString(pkt_t *pkt, std::string str);
+void pktPushByteArray(pkt_t *pkt, const void *p, const size_t size);
 
 class Packet
 {
@@ -36,6 +40,7 @@ protected:
 	int64_t readVarLong();
 	std::string readString(uint32_t size);
 	uint16_t readUShort();
+	bool readByteArray(std::vector<uint8_t> *v, uint32_t size);
 
 	int32_t _id;
 	int _errno;

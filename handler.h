@@ -18,12 +18,12 @@ public:
 	int err() const {return _errno;}
 
 	static void threadFunc(Handler *h) {h->process();}
-	void sendPacket(const pkt_t *v);
+	void sendPacket(pkt_t *v);
+	void disconnect();
 
 private:
 	void readPacket(pkt_t *v);
 	uint32_t readVarInt();
-	uint32_t readVarLong();
 
 	Client c;
 	int _errno;

@@ -38,6 +38,7 @@ public:
 		Packet::dump(ss.str());
 	}
 
+	int32_t protocol() const {return _proto;}
 	int32_t next() const {return _next;}
 
 private:

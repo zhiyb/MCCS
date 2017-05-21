@@ -2,8 +2,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <string>
 #include <sstream>
+#include <iostream>
 #include <iomanip>
 #include "network.h"
 #include "handler.h"
@@ -30,10 +35,14 @@ void Handler::process()
 	for (;;) {
 		pkt_t v;
 		readPacket(&v);
+		if (c.isCompressed())
+			;	// TODO: Compression support
 		if (err()) {
 			c.disconnect(err());
 			goto close;
 		}
+		if (c.isEncrypted())
+			c.decrypt(&v);
 		c.packet(&v);
 	}
 	_errno = 0;
@@ -47,12 +56,21 @@ close:
 	_sd = -1;
 }
 
-void Handler::sendPacket(const pkt_t *v)
+void Handler::sendPacket(pkt_t *v)
 {
 	pkt_t header;
 	pktPushVarInt(&header, v->size());
+	pktPushByteArray(&header, v->data(), v->size());
+	if (c.isEncrypted())
+		c.encrypt(&header);
 	write(_sd, header.data(), header.size());
-	write(_sd, v->data(), v->size());
+	//write(_sd, v->data(), v->size());
+}
+
+void Handler::disconnect()
+{
+	close(_sd);
+	_sd = -1;
 }
 
 void Handler::readPacket(pkt_t *v)
@@ -69,63 +87,24 @@ void Handler::readPacket(pkt_t *v)
 uint32_t Handler::readVarInt()
 {
 	_errno = 0;
-	uint8_t buf[5], *p = buf;
+	uint32_t v = 0;
 	int i;
 	for (i = 0; i != 5; i++) {
 		uint8_t c;
 		ssize_t s = read(_sd, &c, 1);
 		if (s != 1) {
-			_errno = s == -1 ? errno : ECONNABORTED;
+			_errno = s == 0 ? ECONNABORTED : errno;
 			return 0;
 		}
-		*p++ = c;
+		if (this->c.isEncrypted())
+			c = this->c.decrypt(c);
+		v |= (uint32_t)(c & 0x7f) << (i * 7);
 		if (!(c & 0x80))
 			break;
-	}
-	if (buf[4] & 0x80) {
-		_errno = ERANGE;
-		return 0;
-	}
-
-	uint32_t v = 0;
-	p = buf;
-	for (i = 0; i != 5 * 7; i += 7) {
-		uint8_t c = *p++;
-		v |= (uint32_t)(c) << i;
-		if (!(c & 0x80))
-			break;
-	}
-	return v;
-}
-
-uint32_t Handler::readVarLong()
-{
-	_errno = 0;
-	uint8_t buf[10], *p = buf;
-	int i;
-	for (i = 0; i != 10; i++) {
-		uint8_t c;
-		ssize_t s = read(_sd, &c, 1);
-		if (s != 1) {
-			_errno = s == -1 ? errno : ECONNABORTED;
+		else if (i == 4) {
+			_errno = ERANGE;
 			return 0;
 		}
-		*p++ = c;
-		if (!(c & 0x80))
-			break;
-	}
-	if (buf[9] & 0x80) {
-		_errno = ERANGE;
-		return 0;
-	}
-
-	uint64_t v = 0;
-	p = buf;
-	for (i = 0; i != 10 * 7; i += 7) {
-		uint8_t c = *p;
-		v |= (uint32_t)(c) << i;
-		if (!(c & 0x80))
-			break;
 	}
 	return v;
 }

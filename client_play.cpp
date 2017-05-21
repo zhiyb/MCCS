@@ -3,9 +3,9 @@
 #include "packet.h"
 #include "client.h"
 #include "packets/packets.h"
-#include "protocols/p316_id.h"
+#include "protocols/p332_id.h"
 
-using namespace Protocol::p316;
+using namespace Protocol::p332;
 
 void Client::play(const Packet *p)
 {

@@ -1,8 +1,8 @@
-#ifndef PROTOCOL_316_H
-#define PROTOCOL_316_H
+#ifndef PROTOCOL_332_ID_H
+#define PROTOCOL_332_ID_H
 
 namespace Protocol {
-namespace p316 {
+namespace p332 {
 
 namespace ID {
 enum {
@@ -26,4 +26,4 @@ enum {
 }
 }
 
-#endif // PROTOCOL_316_H
+#endif

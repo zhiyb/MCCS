@@ -13,9 +13,11 @@
 #include "ping.h"
 #include "login.h"
 
+#include "tpconfirm.h"
 #include "clientsettings.h"
 #include "pluginmsg.h"
 #include "keepalive.h"
+#include "playerposlook.h"
 
 #undef PKT_ASSERT
 

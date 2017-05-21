@@ -22,16 +22,20 @@ public:
 	bool isCompressed() const {return compressed;}
 	bool isEncrypted() const {return encrypted;}
 
+protected:
+	virtual void play(const Packet *p) = 0;
+	virtual void playInit() = 0;
+
+	Handler *hdr;
+
 private:
 	void handshake(const Packet *p);
 	void status(const Packet *p);
 	void login(const Packet *p);
-	void play(const Packet *p);
 
 	void tokengen();
 	bool initEncryption();
 
-	Handler *hdr;
 	EVP_CIPHER_CTX enc, dec;
 
 	enum {Handshake = 0, Status, Login, Play} state;

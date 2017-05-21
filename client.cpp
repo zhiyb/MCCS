@@ -139,6 +139,7 @@ void Client::login(const Packet *p)
 			goto disconnect;
 
 		// TODO: Enable compression
+		// TODO: On-line authentication
 
 		// Login success
 		pktPushVarInt(&pkt, 0x02);		// ID = 0x02
@@ -147,18 +148,7 @@ void Client::login(const Packet *p)
 		state = Play;
 		hdr->sendPacket(&pkt);
 		syslog(LOG_INFO, "Player %s logged in\n", _playerName.c_str());
-
-		// Join game
-		pkt.clear();
-		pktPushVarInt(&pkt, 0x23);		// ID = 0x23
-		pktPushInt(&pkt, 123);			// Entity ID
-		pktPushUByte(&pkt, 3);			// Gamemode spectator
-		pktPushInt(&pkt, 0);			// Dimension overworld
-		pktPushUByte(&pkt, 0);			// Difficulty peaceful
-		pktPushUByte(&pkt, 0);			// Ignored
-		pktPushString(&pkt, "default");		// Level type
-		pktPushBoolean(&pkt, false);		// Reduced debug info
-		hdr->sendPacket(&pkt);
+		playInit();
 		break;
 	}
 	default:

@@ -4,6 +4,7 @@
 #include <thread>
 #include "packet.h"
 #include "client.h"
+#include "protocols/protocols.h"
 
 class Handler
 {
@@ -25,7 +26,7 @@ private:
 	void readPacket(pkt_t *v);
 	uint32_t readVarInt();
 
-	Client c;
+	Protocol::PROTOCOLNS::ClientProtocol c;
 	int _errno;
 	int _sd;
 	std::thread *_th;

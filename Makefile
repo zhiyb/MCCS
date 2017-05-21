@@ -1,11 +1,15 @@
 # Author: Yubo Zhi (normanzyb@gmail.com)
 
 PRG	= mccs
-SRC	= main.cpp network.cpp handler.cpp packet.cpp client.cpp client_play.cpp status.cpp
+SRC	= main.cpp network.cpp handler.cpp packet.cpp client.cpp status.cpp
+
+PROTOCOL	= 332
+SRC	+= protocols/p$(PROTOCOL)_client.cpp
 
 #CROSS	= mipsel-linux-
 OPTIMIZE	= -g -O3
-CXXFLAGS	= -Wall -Werror -std=c++11 -Irapidjson/include
+CXXFLAGS	= -Wall -Werror -std=c++11 -Irapidjson/include \
+		  -DPROTOCOL=$(PROTOCOL) -DPROTOCOLNS=p$(PROTOCOL)
 LIBS	= -lcrypto -lpthread -lm
 
 OBJ	= $(SRC:%.cpp=%.o)

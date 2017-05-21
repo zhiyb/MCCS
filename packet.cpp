@@ -8,16 +8,6 @@
 #include <iomanip>
 #include "packet.h"
 
-void pktPushBoolean(pkt_t *pkt, bool v)
-{
-	pkt->push_back(v ? 0x01 : 0x00);
-}
-
-void pktPushUByte(pkt_t *pkt, uint8_t v)
-{
-	pkt->push_back(v);
-}
-
 void pktPushInt(pkt_t *pkt, int32_t v)
 {
 	int32_t tmp = ntohl(v);
@@ -30,6 +20,20 @@ void pktPushLong(pkt_t *pkt, int64_t v)
 	pkt->insert(pkt->end(), (uint8_t *)&tmp, (uint8_t *)&tmp + 4);
 	tmp = ntohl(v & 0xffffffff);
 	pkt->insert(pkt->end(), (uint8_t *)&tmp, (uint8_t *)&tmp + 4);
+}
+
+void pktPushFloat(pkt_t *pkt, float v)
+{
+	int32_t i;
+	memcpy(&i, &v, 4);
+	pktPushInt(pkt, i);
+}
+
+void pktPushDouble(pkt_t *pkt, double v)
+{
+	int64_t i;
+	memcpy(&i, &v, 8);
+	pktPushLong(pkt, i);
 }
 
 void pktPushVarInt(pkt_t *pkt, int32_t v)
@@ -49,9 +53,11 @@ void pktPushString(pkt_t *pkt, std::string str)
 	pkt->insert(pkt->end(), str.begin(), str.end());
 }
 
-void pktPushByteArray(pkt_t *pkt, const void *p, const size_t size)
+void pktPushPosition(pkt_t *pkt, int32_t x, int16_t y, int32_t z)
 {
-	pkt->insert(pkt->end(), (char *)p, (char *)p + size);
+	int64_t v = (((int64_t)x & 0x3ffffff) << 38) |
+		(((int64_t)y & 0xfff) << 26) | ((int64_t)z & 0x3ffffff);
+	pktPushLong(pkt, v);
 }
 
 int8_t Packet::readByte()
@@ -63,6 +69,19 @@ int8_t Packet::readByte()
 	int8_t c = *p++;
 	len--;
 	return c;
+}
+
+int32_t Packet::readInt()
+{
+	if (len < 4) {
+		_errno = ENODATA;
+		return 0;
+	}
+	int32_t v = 0;
+	memcpy(&v, p, 4);
+	p += 4;
+	len -= 4;
+	return v;
 }
 
 int64_t Packet::readLong()
@@ -80,6 +99,22 @@ int64_t Packet::readLong()
 	v |= (int64_t)ntohl(tmp);
 	p += 4;
 	len -= 8;
+	return v;
+}
+
+float Packet::readFloat()
+{
+	int32_t i = readInt();
+	float v;
+	memcpy(&v, &i, 4);
+	return v;
+}
+
+double Packet::readDouble()
+{
+	int64_t i = readLong();
+	double v;
+	memcpy(&v, &i, 8);
 	return v;
 }
 

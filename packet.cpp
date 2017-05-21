@@ -54,6 +54,17 @@ void pktPushByteArray(pkt_t *pkt, const void *p, const size_t size)
 	pkt->insert(pkt->end(), (char *)p, (char *)p + size);
 }
 
+int8_t Packet::readByte()
+{
+	if (len < 1) {
+		_errno = ENODATA;
+		return 0;
+	}
+	int8_t c = *p++;
+	len--;
+	return c;
+}
+
 int64_t Packet::readLong()
 {
 	if (len < 8) {

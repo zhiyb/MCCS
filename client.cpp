@@ -24,9 +24,10 @@ void Client::disconnect(int e)
 void Client::packet(const pkt_t *v)
 {
 	Packet p(v);
-	if (p.err())
-		goto drop;
-
+	if (p.err()) {
+		p.dump();
+		return;
+	}
 	switch (state) {
 	case Handshake:
 		handshake(&p);
@@ -37,12 +38,13 @@ void Client::packet(const pkt_t *v)
 	case Login:
 		login(&p);
 		break;
+	case Play:
+		play(&p);
+		break;
 	default:
-		goto drop;
+		p.dump();
+		hdr->disconnect();
 	}
-	return;
-drop:
-	p.dump();
 }
 
 void Client::handshake(const Packet *p)
@@ -51,28 +53,21 @@ void Client::handshake(const Packet *p)
 	case 0x00: {	// Handshake
 		PktHandshake phs(*p);
 		if (phs.err())
-			goto drop;
+			break;
 		_proto = phs.protocol();
 		switch (phs.next()) {
 		case 1:
 			state = Status;
-			break;
+			return;
 		case 2:
 			state = Login;
 			tokengen();
-			break;
-		default:
-			goto drop;
+			return;
 		}
-		break;
 	}
-	default:
-		goto drop;
 	}
-	return;
-
-drop:
 	p->dump();
+	hdr->disconnect();
 }
 
 void Client::status(const Packet *p)
@@ -82,22 +77,18 @@ void Client::status(const Packet *p)
 	case 0x00:	// Status request
 		pktPushVarInt(&pkt, 0x00);		// ID = 0x00
 		pktPushString(&pkt, ::status.toJson());	// JSON response
-		break;
+		hdr->sendPacket(&pkt);
+		return;
 	case 0x01: {	// Ping
 		PktPing pp(*p);
 		if (pp.err())
-			goto drop;
+			break;
 		pktPushVarInt(&pkt, 0x01);		// ID = 0x01
 		pktPushLong(&pkt, pp.payload());	// Ping Pong!
-		break;
+		hdr->sendPacket(&pkt);
+		return;
 	}
-	default:
-		goto drop;
 	}
-	hdr->sendPacket(&pkt);
-	return;
-
-drop:
 	p->dump();
 }
 
@@ -110,8 +101,6 @@ void Client::login(const Packet *p)
 		if (pls.err())
 			goto drop;
 		_playerName = pls.playerName();
-		syslog(LOG_INFO, "Player %s logging in...\n",
-				_playerName.c_str());
 
 		// Disconnect
 		//pktPushVarInt(&pkt, 0x00);		// ID = 0x00
@@ -157,6 +146,7 @@ void Client::login(const Packet *p)
 		pktPushString(&pkt, _playerName);
 		state = Play;
 		hdr->sendPacket(&pkt);
+		syslog(LOG_INFO, "Player %s logged in\n", _playerName.c_str());
 
 		// Join game
 		pkt.clear();

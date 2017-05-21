@@ -1,7 +1,7 @@
 # Author: Yubo Zhi (normanzyb@gmail.com)
 
 PRG	= mccs
-SRC	= main.cpp network.cpp handler.cpp packet.cpp client.cpp status.cpp
+SRC	= main.cpp network.cpp handler.cpp packet.cpp client.cpp client_play.cpp status.cpp
 
 #CROSS	= mipsel-linux-
 OPTIMIZE	= -g -O3

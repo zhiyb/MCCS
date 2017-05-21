@@ -26,6 +26,7 @@ private:
 	void handshake(const Packet *p);
 	void status(const Packet *p);
 	void login(const Packet *p);
+	void play(const Packet *p);
 
 	void tokengen();
 	bool initEncryption();

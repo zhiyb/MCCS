@@ -6,6 +6,7 @@
 #include <string>
 
 typedef std::vector<uint8_t> pkt_t;
+typedef std::vector<uint8_t> byteArray_t;
 
 void pktPushBoolean(pkt_t *pkt, bool v);
 void pktPushUByte(pkt_t *pkt, uint8_t v);
@@ -18,7 +19,7 @@ void pktPushByteArray(pkt_t *pkt, const void *p, const size_t size);
 class Packet
 {
 public:
-	Packet(const pkt_t *pkt) : _valid(false)
+	Packet(const pkt_t *pkt) : _errno(0)
 	{
 		len = pkt->size();
 		p = pkt->data();
@@ -35,12 +36,17 @@ public:
 	void dump(const std::string &s) const;
 
 protected:
+	bool readBoolean() {return readUByte() == 0x00 ? false : true;}
+	int8_t readByte();
+	uint8_t readUByte() {return (uint8_t)readByte();}
 	int64_t readLong();
 	int32_t readVarInt();
 	int64_t readVarLong();
 	std::string readString(uint32_t size);
 	uint16_t readUShort();
-	bool readByteArray(std::vector<uint8_t> *v, uint32_t size);
+	bool readByteArray(byteArray_t *v, uint32_t size);
+
+	uint32_t length() const {return len;}
 
 	int32_t _id;
 	int _errno;

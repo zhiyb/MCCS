@@ -60,7 +60,7 @@ string Status::version() const
 
 int Status::protocol() const
 {
-	return 332;
+	return PROTOCOL;
 }
 
 int Status::playersMax() const

@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 
+#define FP1	(1u << 5)
+
 typedef std::vector<uint8_t> pkt_t;
 typedef std::vector<uint8_t> byteArray_t;
 

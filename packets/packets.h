@@ -17,7 +17,9 @@
 #include "clientsettings.h"
 #include "pluginmsg.h"
 #include "keepalive.h"
+#include "playerpos.h"
 #include "playerposlook.h"
+#include "playerlook.h"
 
 #undef PKT_ASSERT
 

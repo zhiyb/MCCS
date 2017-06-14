@@ -4,11 +4,11 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <string.h>
-#include <syslog.h>
 #include <errno.h>
 #include <sstream>
 #include "network.h"
 #include "handler.h"
+#include "logging.h"
 
 Network::Network()
 {
@@ -53,7 +53,7 @@ error:
 
 bool Network::process()
 {
-	syslog(LOG_INFO, "Network process started\n");
+	logger->info("Network process started");
 	while (true) {
 		int s = ::accept(sd.listen, NULL, NULL);
 		if (s < 0)

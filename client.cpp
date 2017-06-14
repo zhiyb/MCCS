@@ -1,44 +1,57 @@
 #include <string.h>
-#include <syslog.h>
 #include <iostream>
 #include <openssl/bio.h>
+#include "logging.h"
 #include "client.h"
 #include "handler.h"
 #include "status.h"
 #include "packets/packets.h"
+#include "protocols/id.h"
+
+using namespace Protocol;
 
 Client::Client()
 {
+	_protocol = 0;
+	_version = 0;
 	compressed = false;
 	encrypted = false;
-	state = Handshake;
+	state = State::Handshake;
 }
 
 void Client::disconnect(int e)
 {
 	if (!_playerName.empty())
-		syslog(LOG_INFO, "Player %s disconnected: %s\n",
+		logger->info("Player {} disconnected: {}",
 				_playerName.c_str(), strerror(e));
 }
 
-void Client::packet(const pkt_t *v)
+void Client::packet(pkt_t *v)
 {
+	if (v->empty())
+		return;
 	Packet p(v);
 	if (p.err()) {
 		p.dump();
 		return;
 	}
+	pktid_t i = id(p.id());
+	if (i < 0) {
+		p.dump();
+		return;
+	}
+	p.setID(i);
 	switch (state) {
-	case Handshake:
+	case State::Handshake:
 		handshake(&p);
 		break;
-	case Status:
+	case State::Status:
 		status(&p);
 		break;
-	case Login:
+	case State::Login:
 		login(&p);
 		break;
-	case Play:
+	case State::Play:
 		play(&p);
 		break;
 	default:
@@ -50,17 +63,18 @@ void Client::packet(const pkt_t *v)
 void Client::handshake(const Packet *p)
 {
 	switch (p->id()) {
-	case 0x00: {	// Handshake
+	case Handshake::Server::Handshake: {
 		PktHandshake phs(*p);
 		if (phs.err())
 			break;
-		_proto = phs.protocol();
+		_version = phs.protocol();
+		_protocol = protocols.fuzzyVersion(_version);
 		switch (phs.next()) {
 		case 1:
-			state = Status;
+			state = State::Status;
 			return;
 		case 2:
-			state = Login;
+			state = State::Login;
 			tokengen();
 			return;
 		}
@@ -74,18 +88,18 @@ void Client::status(const Packet *p)
 {
 	pkt_t pkt;
 	switch (p->id()) {
-	case 0x00:	// Status request
-		pktPushVarInt(&pkt, 0x00);		// ID = 0x00
-		pktPushString(&pkt, ::status.toJson());	// JSON response
-		hdr->sendPacket(&pkt);
+	case Status::Server::Request:
+		pktPushVarInt(&pkt, pktid(Status::Client::Response));
+		pktPushString(&pkt, ::status.toJson());			// JSON response
+		hdr->send(&pkt);
 		return;
-	case 0x01: {	// Ping
+	case Status::Server::Ping: {
 		PktPing pp(*p);
 		if (pp.err())
 			break;
-		pktPushVarInt(&pkt, 0x01);		// ID = 0x01
-		pktPushLong(&pkt, pp.payload());	// Ping Pong!
-		hdr->sendPacket(&pkt);
+		pktPushVarInt(&pkt, pktid(Status::Client::Pong));
+		pktPushLong(&pkt, pp.payload());			// Ping Pong!
+		hdr->send(&pkt);
 		return;
 	}
 	}
@@ -96,18 +110,23 @@ void Client::login(const Packet *p)
 {
 	pkt_t pkt;
 	switch (p->id()) {
-	case 0x00: {	// Login start
+	case Login::Server::Start: {	// Login start
 		PktLoginStart pls(*p);
 		if (pls.err())
 			goto drop;
 		_playerName = pls.playerName();
 
-		// Disconnect
-		//pktPushVarInt(&pkt, 0x00);		// ID = 0x00
-		//pktPushString(&pkt, "{\"text\":\"Not yet implemented\"}");
+		// Disconnection
+		/*if (!protocols.hasVersion(_version)) {
+			pktPushVarInt(&pkt, pktid(Login::Client::Disconnect));
+			pktPushString(&pkt, "{\"text\":\"Client version not supported\"}");
+			hdr->send(&pkt);
+			hdr->disconnect();
+			break;
+		}*/
 
 		// Encryption request
-		pktPushVarInt(&pkt, 0x01);		// ID = 0x01
+		pktPushVarInt(&pkt, pktid(Login::Client::Encryption));
 		pktPushString(&pkt, "");		// Server ID
 		BIO *bio = BIO_new(BIO_s_mem());
 		::status.pubkey(bio);
@@ -118,10 +137,10 @@ void Client::login(const Packet *p)
 		BIO_free_all(bio);
 		pktPushVarInt(&pkt, _token.size());	// Token length
 		pktPushByteArray(&pkt, _token.data(), _token.size());
-		hdr->sendPacket(&pkt);
+		hdr->send(&pkt);
 		break;
 	}
-	case 0x01: {	// Encryption response
+	case Login::Server::Encryption: {	// Encryption response
 		PktLoginResponse plr(*p);
 		if (plr.err())
 			goto disconnect;
@@ -142,12 +161,12 @@ void Client::login(const Packet *p)
 		// TODO: On-line authentication
 
 		// Login success
-		pktPushVarInt(&pkt, 0x02);		// ID = 0x02
+		pktPushVarInt(&pkt, pktid(Login::Client::Success));
 		pktPushString(&pkt, "11111111-2222-3333-4444-555555555555");
 		pktPushString(&pkt, _playerName);
-		state = Play;
-		hdr->sendPacket(&pkt);
-		syslog(LOG_INFO, "Player %s logged in\n", _playerName.c_str());
+		hdr->send(&pkt);
+		state = State::Play;
+		logger->info("Player {} logged in", _playerName.c_str());
 		playInit();
 		break;
 	}

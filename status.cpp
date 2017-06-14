@@ -1,4 +1,3 @@
-#include <syslog.h>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -11,6 +10,8 @@
 #include <openssl/asn1.h>
 #include <openssl/objects.h>
 #include "status.h"
+#include "logging.h"
+#include "protocols.h"
 
 using std::string;
 using std::stringstream;
@@ -55,12 +56,12 @@ int Status::decrypt(std::vector<uint8_t> &from, std::vector<uint8_t> &to)
 
 string Status::version() const
 {
-	return "1.12-pre5";
+	return Protocol::protocols.versionString();
 }
 
 int Status::protocol() const
 {
-	return PROTOCOL;
+	return Protocol::protocols.versionMax();
 }
 
 int Status::playersMax() const

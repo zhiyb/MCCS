@@ -1,4 +1,3 @@
-#include <syslog.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -10,12 +9,14 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include "logging.h"
 #include "network.h"
 #include "handler.h"
 #include "packet.h"
-#include "client.h"
+#include "protocols.h"
 
 using std::vector;
+using namespace Protocol;
 
 Handler::Handler(int sd)
 {
@@ -28,8 +29,7 @@ void Handler::process()
 	socklen_t len = sizeof(addr);
 	if (::getpeername(_sd, (struct sockaddr *)&addr, &len) == -1)
 		goto error;
-	//syslog(LOG_INFO, "[%p] Connection established from %s\n", this,
-	//		Network::saddrtostr(&addr).c_str());
+	//logger->info("Connection established from {}", Network::saddrtostr(&addr).c_str());
 	c.handler(this);
 
 	for (;;) {
@@ -44,27 +44,34 @@ void Handler::process()
 		if (c.isEncrypted())
 			c.decrypt(&v);
 		c.packet(&v);
+		// In case connection closed from within Client class
+		if (_sd == -1)
+			return;
 	}
 	_errno = 0;
 	goto close;
 
 error:
 	_errno = errno;
-	syslog(LOG_WARNING, "[%p] Error: %s\n", this, strerror(err()));
+	logger->warn("Network error: {}", strerror(err()));
 close:
 	close(_sd);
 	_sd = -1;
 }
 
-void Handler::sendPacket(pkt_t *v)
+void Handler::send(pkt_t *v)
 {
+	pktid_t id = Packet(v).id();
+	if (id < 0) {
+		logger->warn("Ignored packet of type {} size {}", protocols.hashToStr(-id), v->size());
+		return;
+	}
 	pkt_t header;
 	pktPushVarInt(&header, v->size());
 	pktPushByteArray(&header, v->data(), v->size());
 	if (c.isEncrypted())
 		c.encrypt(&header);
 	write(_sd, header.data(), header.size());
-	//write(_sd, v->data(), v->size());
 }
 
 void Handler::disconnect()

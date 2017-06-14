@@ -1,5 +1,4 @@
 #include <errno.h>
-#include <syslog.h>
 #include <string.h>
 #include <stdio.h>
 #include <arpa/inet.h>
@@ -38,13 +37,14 @@ void pktPushDouble(pkt_t *pkt, double v)
 
 void pktPushVarInt(pkt_t *pkt, int32_t v)
 {
+	uint32_t u = v;
 	do {
-		uint8_t c = v & 0x7f;
-		v >>= 7;
-		if (v)
+		uint8_t c = u & 0x7f;
+		u >>= 7;
+		if (u)
 			c |= 0x80;
 		pkt->push_back(c);
-	} while (v);
+	} while (u);
 }
 
 void pktPushString(pkt_t *pkt, std::string str)

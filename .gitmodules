@@ -1,3 +1,9 @@
 [submodule "rapidjson"]
 	path = rapidjson
 	url = git@github.com:miloyip/rapidjson.git
+[submodule "spdlog"]
+	path = spdlog
+	url = git@github.com:gabime/spdlog.git
+[submodule "fast-cpp-csv-parser"]
+	path = fast-cpp-csv-parser
+	url = git@github.com:ben-strasser/fast-cpp-csv-parser.git

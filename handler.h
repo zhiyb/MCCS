@@ -4,7 +4,6 @@
 #include <thread>
 #include "packet.h"
 #include "client.h"
-#include "protocols/protocols.h"
 
 class Handler
 {
@@ -19,14 +18,14 @@ public:
 	int err() const {return _errno;}
 
 	static void threadFunc(Handler *h) {h->process();}
-	void sendPacket(pkt_t *v);
+	void send(pkt_t *v);
 	void disconnect();
 
 private:
 	void readPacket(pkt_t *v);
 	uint32_t readVarInt();
 
-	Protocol::PROTOCOLNS::ClientProtocol c;
+	Client c;
 	int _errno;
 	int _sd;
 	std::thread *_th;

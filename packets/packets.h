@@ -15,11 +15,13 @@
 
 #include "tpconfirm.h"
 #include "clientsettings.h"
+#include "closewindow.h"
 #include "pluginmsg.h"
 #include "keepalive.h"
 #include "playerpos.h"
 #include "playerposlook.h"
 #include "playerlook.h"
+#include "entityact.h"
 
 #undef PKT_ASSERT
 

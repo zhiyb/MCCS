@@ -37,6 +37,7 @@ public:
 	int err() const {return _errno;}
 	virtual bool valid() const {return _valid;}
 	int32_t id() const {return _id;}
+	void setID(int32_t v) {_id = v;}
 
 	virtual void dump() const {dump("dump");}
 	void dump(const std::string &s) const;

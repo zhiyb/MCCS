@@ -1,39 +1,49 @@
-#include <syslog.h>
 #include <string.h>
 #include <iostream>
 #include <openssl/err.h>
 #include "network.h"
 #include "status.h"
+#include "protocols.h"
+#include "logging.h"
+
+std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("console");
 
 using std::cerr;
 using std::cout;
 using std::endl;
+using namespace Protocol;
 
 int main(int argc, char *argv[])
 {
-	openlog("MCCS", LOG_PERROR | LOG_PID, LOG_USER);
+	//logger->set_pattern("[%Y-%m-%d %T t%t] [%l] %v");
+	logger->set_pattern("[%T %t/%l]: %v");
+
 	if (status.keygen() != 0) {
-		syslog(LOG_ERR, "Key generation failed: %lu\n",
-				ERR_get_error());
+		logger->error("Key generation failed: {}", ERR_get_error());
+		return 1;
+	}
+
+	protocols.load();
+	if (protocols.versions() == 0) {
+		logger->error("No protocol versions available");
 		return 1;
 	}
 
 	Network n;
 	if (!n.listen()) {
-		syslog(LOG_ERR, "Cannot listen on %s: %s\n",
+		logger->error("Cannot listen on {}: {}",
 				n.host().c_str(), strerror(n.err()));
 		return 1;
 	}
-	syslog(LOG_INFO, "Listening on %s\n", n.host().c_str());
+	logger->info("Listening on {}", n.host().c_str());
 
 	if (!n.process()) {
-		syslog(LOG_ERR, "Network process failed: %s\n",
-				strerror(n.err()));
+		logger->error("Network process failed: {}", strerror(n.err()));
 		goto close;
 	}
 
 close:
-	syslog(LOG_INFO, "Closing socket...\n");
+	logger->info("Closing socket...");
 	n.close();
 	return 0;
 }

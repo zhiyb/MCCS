@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 #include <openssl/evp.h>
+#include "protocols.h"
 #include "packet.h"
+#include "logging.h"
 
 class Handler;
 
@@ -13,7 +15,7 @@ class Client
 public:
 	Client();
 	void disconnect(int e);
-	void packet(const pkt_t *v);
+	void packet(pkt_t *v);
 	void handler(Handler *h) {hdr = h;}
 	void encrypt(pkt_t *pkt);
 	void decrypt(pkt_t *pkt);
@@ -22,25 +24,38 @@ public:
 	bool isCompressed() const {return compressed;}
 	bool isEncrypted() const {return encrypted;}
 
-protected:
-	virtual void play(const Packet *p) = 0;
-	virtual void playInit() = 0;
-
-	Handler *hdr;
-
 private:
 	void handshake(const Packet *p);
 	void status(const Packet *p);
 	void login(const Packet *p);
+
+	void playInit();
+	void play(const Packet *p);
+
+	void sendNewChunks(double x, double z);
+	void sendNewChunk(int32_t x, int32_t z);
+	void pushChunkSection(pkt_t *p, int32_t x, int32_t z, bool biome);
+
+	Protocol::id_t id(Protocol::pktid_t i) const
+	{
+		return Protocol::protocols.resolve(_protocol, state, Protocol::Bound::Server, i);
+	}
+
+	Protocol::pktid_t pktid(Protocol::id_t i) const
+	{
+		return Protocol::protocols.convert(_protocol, state, Protocol::Bound::Client, i);
+	}
 
 	void tokengen();
 	bool initEncryption();
 
 	EVP_CIPHER_CTX enc, dec;
 
-	enum {Handshake = 0, Status, Login, Play} state;
+	Handler *hdr;
+
+	Protocol::state_t state;
 	bool compressed, encrypted;
-	int32_t _proto;
+	int32_t _protocol, _version;
 	std::string _playerName;
 	std::vector<uint8_t> _token, _secret;
 };

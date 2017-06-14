@@ -1,55 +1,60 @@
-#include <math.h>
-#include <string.h>
-#include <iostream>
-#include <string>
-#include "../handler.h"
-#include "../packets/packets.h"
-#include "p332_client.h"
-#include "p332_id.h"
+#include "client.h"
+#include "handler.h"
+#include "packets/packets.h"
+#include "protocols.h"
+#include "protocols/id.h"
+#include "logging.h"
 
-using namespace Protocol::p332;
+using namespace std;
+using namespace Protocol;
 
-void ClientProtocol::play(const Packet *p)
+void Client::play(const Packet *p)
 {
 	switch (p->id()) {
-	case ID::Server::TPConfirm:
+	case Play::Server::TeleportConfirm:
 		PktTPConfirm(*p).dump();
 		return;
-	case ID::Server::ClientSettings: {
+	case Play::Server::ClientSettings: {
 		PktClientSettings pp(*p);
 		if (pp.err())
 			break;
 		pp.dump();
 		return;
 	}
-	case ID::Server::PluginMsg: {
+	case Play::Server::CloseWindow:
+		PktCloseWindow(*p).dump();
+		return;
+	case Play::Server::PluginMessage: {
 		PktPluginMsg pp(*p);
 		if (pp.err())
 			break;
 		pp.dump();
 		return;
 	}
-	case ID::Server::KeepAlive:
+	case Play::Server::KeepAlive:
 		PktKeepAlive(*p).dump();
 		return;
-	case ID::Server::PlayerPos:
+	case Play::Server::PlayerPosition:
 		PktPlayerPos(*p).dump();
 		return;
-	case ID::Server::PlayerPosLook:
+	case Play::Server::PlayerPositionLook:
 		PktPlayerPosLook(*p).dump();
 		return;
-	case ID::Server::PlayerLook:
+	case Play::Server::PlayerLook:
 		PktPlayerLook(*p).dump();
+		return;
+	case Play::Server::EntityAction:
+		PktEntityAct(*p).dump();
 		return;
 	}
 	p->dump();
 }
 
-void ClientProtocol::playInit()
+void Client::playInit()
 {
 	// Join game
 	pkt_t pkt;
-	pktPushVarInt(&pkt, 0x23);		// ID = 0x23
+	pktPushVarInt(&pkt, pktid(Play::Client::JoinGame));
 	pktPushInt(&pkt, 123);			// Entity ID
 	pktPushUByte(&pkt, 3);			// Gamemode spectator
 	pktPushInt(&pkt, 0);			// Dimension overworld
@@ -57,25 +62,25 @@ void ClientProtocol::playInit()
 	pktPushUByte(&pkt, 0);			// Ignored
 	pktPushString(&pkt, "default");		// Level type
 	pktPushBoolean(&pkt, false);		// Reduced debug info
-	hdr->sendPacket(&pkt);
+	hdr->send(&pkt);
 
 	// Spawn position
 	pkt.clear();
-	pktPushVarInt(&pkt, ID::Client::SpawnPos);
+	pktPushVarInt(&pkt, pktid(Play::Client::SpawnPosition));
 	pktPushPosition(&pkt, 0, 20 * FP1, 0);
-	hdr->sendPacket(&pkt);
+	hdr->send(&pkt);
 
 	// Player abilities
 	pkt.clear();
-	pktPushVarInt(&pkt, ID::Client::PlayerAbility);
+	pktPushVarInt(&pkt, pktid(Play::Client::PlayerAbilities));
 	pktPushByte(&pkt, 0x0f);	// Flags
-	pktPushFloat(&pkt, 0.f);	// Speed
-	pktPushFloat(&pkt, 0.f);	// FOV modifier
-	hdr->sendPacket(&pkt);
+	pktPushFloat(&pkt, 0.2f);	// Speed
+	pktPushFloat(&pkt, 0.2f);	// FOV modifier
+	hdr->send(&pkt);
 
 	// Player position and look
 	pkt.clear();
-	pktPushVarInt(&pkt, ID::Client::PlayerPosLook);
+	pktPushVarInt(&pkt, pktid(Play::Client::PlayerPositionLook));
 	pktPushDouble(&pkt, 0.f);	// X
 	pktPushDouble(&pkt, 18.f);	// Y
 	pktPushDouble(&pkt, 0.f);	// Z
@@ -83,12 +88,12 @@ void ClientProtocol::playInit()
 	pktPushFloat(&pkt, 0.f);	// Pitch
 	pktPushByte(&pkt, 0);		// Relative/absolute flags
 	pktPushVarInt(&pkt, 0);		// Teleport ID
-	hdr->sendPacket(&pkt);
+	hdr->send(&pkt);
 
 	sendNewChunks(0.f, 0.f);
 }
 
-void ClientProtocol::sendNewChunks(double x, double z)
+void Client::sendNewChunks(double x, double z)
 {
 	int32_t ix = round(x / 16.f) - 3, iz = round(z / 16.f) - 3;
 	for (int i = 0; i != 7; i++)
@@ -96,18 +101,18 @@ void ClientProtocol::sendNewChunks(double x, double z)
 			sendNewChunk(ix + i, iz + j);
 }
 
-void ClientProtocol::sendNewChunk(int32_t x, int32_t z)
+void Client::sendNewChunk(int32_t x, int32_t z)
 {
 	// Unload chunk
 	pkt_t pkt;
-	pktPushVarInt(&pkt, ID::Client::Unload);
+	pktPushVarInt(&pkt, pktid(Play::Client::UnloadChunk));
 	pktPushInt(&pkt, x);
 	pktPushInt(&pkt, z);
-	hdr->sendPacket(&pkt);
+	hdr->send(&pkt);
 
 	// Send chunk data
 	pkt.clear();
-	pktPushVarInt(&pkt, ID::Client::Chunk);
+	pktPushVarInt(&pkt, pktid(Play::Client::ChunkData));
 	pktPushInt(&pkt, x);
 	pktPushInt(&pkt, z);
 	pktPushBoolean(&pkt, true);		// Ground-up continuous
@@ -115,10 +120,10 @@ void ClientProtocol::sendNewChunk(int32_t x, int32_t z)
 	pushChunkSection(&pkt, x, z, true);	// Chunk section data
 	pktPushVarInt(&pkt, 0);			// Block entities #
 	pktPushByteArray(&pkt, 0, 0);		// Block entities NBT data
-	hdr->sendPacket(&pkt);
+	hdr->send(&pkt);
 }
 
-void ClientProtocol::pushChunkSection(pkt_t *p, int32_t x, int32_t z, bool biome)
+void Client::pushChunkSection(pkt_t *p, int32_t x, int32_t z, bool biome)
 {
 	// Chunk data
 	const auto bits = 13;

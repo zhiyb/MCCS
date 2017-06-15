@@ -32,7 +32,8 @@ void Client::play(const Packet *p)
 		return;
 	}
 	case Play::Server::KeepAlive:
-		PktKeepAlive(*p).dump();
+		if (PktKeepAlive(*p).id() == _keepAlive)
+			hdr->feed();
 		return;
 	case Play::Server::PlayerPosition:
 		PktPlayerPos(*p).dump();

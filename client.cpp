@@ -1,4 +1,5 @@
 #include <string.h>
+#include <errno.h>
 #include <iostream>
 #include <openssl/bio.h>
 #include "logging.h"
@@ -17,13 +18,6 @@ Client::Client()
 	compressed = false;
 	encrypted = false;
 	state = State::Handshake;
-}
-
-void Client::logDisconnect(int e)
-{
-	if (_playerName.empty())
-		return;
-	logger->info("Player {} disconnected: {}", _playerName.c_str(), strerror(e));
 }
 
 void Client::packet(pkt_t *v)
@@ -56,8 +50,26 @@ void Client::packet(pkt_t *v)
 		break;
 	default:
 		p.dump();
-		hdr->disconnect();
+		hdr->disconnect(EPROTO);
 	}
+}
+
+void Client::keepAlive()
+{
+	if (state != State::Play)
+		return;
+	_keepAlive = hdr->rand();
+	pkt_t pkt;
+	pktPushVarInt(&pkt, pktid(Play::Client::KeepAlive));
+	pktPushVarInt(&pkt, _keepAlive);
+	hdr->send(&pkt);
+}
+
+void Client::logDisconnect(int e)
+{
+	if (_playerName.empty())
+		return;
+	logger->info("Player {} disconnected: {}", _playerName.c_str(), strerror(e));
 }
 
 void Client::handshake(const Packet *p)
@@ -81,7 +93,7 @@ void Client::handshake(const Packet *p)
 	}
 	}
 	p->dump();
-	hdr->disconnect();
+	hdr->disconnect(EPROTO);
 }
 
 void Client::status(const Packet *p)
@@ -121,7 +133,7 @@ void Client::login(const Packet *p)
 			pktPushVarInt(&pkt, pktid(Login::Client::Disconnect));
 			pktPushString(&pkt, "{\"text\":\"Client version not supported\"}");
 			hdr->send(&pkt);
-			hdr->disconnect();
+			hdr->disconnect(EPROTONOSUPPORT);
 			break;
 		}*/
 
@@ -176,7 +188,7 @@ void Client::login(const Packet *p)
 	return;
 
 disconnect:
-	hdr->disconnect();
+	hdr->disconnect(EPROTO);
 drop:
 	p->dump();
 }

@@ -111,7 +111,7 @@ bool Network::process()
 		int flag = 1;
 		setsockopt(s, IPPROTO_TCP, TCP_NODELAY,
 				(void *)&flag, sizeof(flag));
-		Handler *h = new Handler(s);
+		Handler *h = new Handler(s, rand());
 		std::thread *th = new std::thread(Handler::threadFunc, h);
 		h->thread(th);
 		handlers.insert(h);

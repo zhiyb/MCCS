@@ -14,9 +14,12 @@ class Client
 {
 public:
 	Client();
-	void logDisconnect(int e);
-	void packet(pkt_t *v);
 	void handler(Handler *h) {hdr = h;}
+
+	void packet(pkt_t *v);
+	void keepAlive();
+	void logDisconnect(int e);
+
 	void encrypt(pkt_t *pkt);
 	void encryptAppend(pkt_t *src, pkt_t *dst);
 	void decrypt(pkt_t *pkt);
@@ -56,7 +59,7 @@ private:
 
 	Protocol::state_t state;
 	bool compressed, encrypted;
-	int32_t _protocol, _version;
+	int32_t _protocol, _version, _keepAlive;
 	std::string _playerName;
 	std::vector<uint8_t> _token, _secret;
 };

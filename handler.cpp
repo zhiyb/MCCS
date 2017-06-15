@@ -15,38 +15,85 @@
 using std::vector;
 using namespace Protocol;
 
-Handler::Handler(int sd)
+Handler::Handler(int sd, int seed)
 {
 	_sd = sd;
+	loop = 0;
+	ioSocketR = 0;
+	ioSocketW = 0;
+	tWatchdog = 0;
+	tKeepAlive = 0;
+	_rand.seed(seed);
+}
+
+Handler::~Handler()
+{
+	// The destructor automatically stops the watcher if it is active
+	delete ioSocketR;
+	delete ioSocketW;
+	delete tWatchdog;
+	delete tKeepAlive;
+	if (loop)
+		ev_loop_destroy(loop);
 }
 
 void Handler::process()
 {
-	struct ev_loop *loop = EV_DEFAULT;
-	sdWatcherR = new ev::io(loop);
-	sdWatcherR->set<Handler, &Handler::sdCallbackR>(this);
-	sdWatcherR->start(_sd, ev::READ);
-	sdWatcherW = new ev::io(loop);
-	sdWatcherW->set<Handler, &Handler::sdCallbackW>(this);
-
+#if 0
 	struct sockaddr_in addr;
 	socklen_t len = sizeof(addr);
 	if (::getpeername(_sd, (struct sockaddr *)&addr, &len) == -1) {
 		_errno = errno;
 		logger->warn("Network error: {}", strerror(err()));
-		disconnect();
-		delete sdWatcherR;
+		close(_sd);
+		_sd = -1;
 		return;
 	}
+	logger->info("Connection established from {}", Network::saddrtostr(&addr).c_str());
+#endif
 
-	//logger->info("Connection established from {}", Network::saddrtostr(&addr).c_str());
+	loop = ev_loop_new(EVFLAG_AUTO | EVFLAG_NOENV);
+	ioSocketR = new ev::io(loop);
+	ioSocketR->set<Handler, &Handler::ioSocketRCB>(this);
+	ioSocketR->start(_sd, ev::READ);
+	ioSocketW = new ev::io(loop);
+	ioSocketW->set<Handler, &Handler::ioSocketWCB>(this);
+	tWatchdog = new ev::timer(loop);
+	tWatchdog->set<Handler, &Handler::tWatchdogCB>(this);
+	tWatchdog->set(60, 30);
+	tWatchdog->start();
+	tKeepAlive = new ev::timer(loop);
+	tKeepAlive->set<Handler, &Handler::tKeepAliveCB>(this);
+	tKeepAlive->set(10, 10);
+	tKeepAlive->start();
 	c.handler(this);
 	pktLength = 0;
-	ev_run(loop, 0);
-	delete sdWatcherR;
+	while (ev_run(loop, 0));
 }
 
-void Handler::sdCallbackR(ev::io &w, int revents)
+void Handler::disconnect(int error)
+{
+	error = error ?: err();
+	c.logDisconnect(error);
+	ioSocketR->stop();
+	ioSocketW->stop();
+	tWatchdog->stop();
+	tKeepAlive->stop();
+	close(_sd);
+	_sd = -1;
+}
+
+void Handler::tWatchdogCB(ev::timer &w, int revents)
+{
+	disconnect(ETIMEDOUT);
+}
+
+void Handler::tKeepAliveCB(ev::timer &w, int revents)
+{
+	c.keepAlive();
+}
+
+void Handler::ioSocketRCB(ev::io &w, int revents)
 {
 	if (!(revents & EV_READ))
 		return;
@@ -65,12 +112,12 @@ void Handler::sdCallbackR(ev::io &w, int revents)
 	pktRecv.clear();
 }
 
-void Handler::sdCallbackW(ev::io &w, int revents)
+void Handler::ioSocketWCB(ev::io &w, int revents)
 {
 	if (!(revents & EV_WRITE))
 		return;
 	if (sendQueue.empty()) {
-		sdWatcherW->stop();
+		ioSocketW->stop();
 		return;
 	}
 	errno = 0;
@@ -84,7 +131,7 @@ void Handler::sdCallbackW(ev::io &w, int revents)
 		sendQueue.erase(sendQueue.begin(), sendQueue.begin() + s);
 		_errno = sendQueue.empty() ? 0 : EAGAIN;
 		if (sendQueue.empty())
-			sdWatcherW->stop();
+			ioSocketW->stop();
 	}
 	if (err() && err() != EAGAIN && err() != EWOULDBLOCK)
 		disconnect();
@@ -105,16 +152,7 @@ void Handler::send(pkt_t *v)
 	} else
 		pktPushByteArray(&pkt, v->data(), v->size());
 	sendQueue.insert(sendQueue.end(), pkt.begin(), pkt.end());
-	sdWatcherW->start(_sd, ev::WRITE);
-}
-
-void Handler::disconnect()
-{
-	c.logDisconnect(err());
-	sdWatcherR->stop();
-	sdWatcherW->stop();
-	close(_sd);
-	_sd = -1;
+	ioSocketW->start(_sd, ev::WRITE);
 }
 
 void Handler::recv(pkt_t *v)

@@ -1,7 +1,8 @@
-#ifndef HANDLER_H
-#define HANDLER_H
+#pragma once
 
 #include <thread>
+#include <deque>
+#include <ev++.h>
 #include "packet.h"
 #include "client.h"
 
@@ -9,7 +10,6 @@ class Handler
 {
 public:
 	Handler(int sd);
-	void process();
 	bool closed() const {return _sd == -1;}
 
 	std::thread *thread() const {return _th;}
@@ -22,13 +22,20 @@ public:
 	void disconnect();
 
 private:
-	void readPacket(pkt_t *v);
-	uint32_t readVarInt();
+	void recv(pkt_t *v);
+	int32_t readVarInt(pkt_t *pkt);
+
+	void process();
+	void sdCallbackR(ev::io &w, int revents);
+	void sdCallbackW(ev::io &w, int revents);
+
+	ev::io *sdWatcherR, *sdWatcherW;
+	int32_t pktLength, pktSize;
+	pkt_t pktRecv;
+	std::deque<uint8_t> sendQueue;
 
 	Client c;
 	int _errno;
 	int _sd;
 	std::thread *_th;
 };
-
-#endif // HANDLER_H

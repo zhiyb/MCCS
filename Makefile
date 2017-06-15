@@ -8,7 +8,7 @@ SRC	= main.cpp network.cpp handler.cpp packet.cpp status.cpp protocols.cpp \
 OPTIMIZE	= -g -O3
 CXXFLAGS	= -Wall -Werror -std=c++11 \
 		  -Irapidjson/include -Ispdlog/include -Ifast-cpp-csv-parser
-LIBS	= -lcrypto -lpthread -lm
+LIBS	= -lev -lcrypto -lpthread -lm
 
 OBJ	= $(SRC:%.cpp=%.o)
 

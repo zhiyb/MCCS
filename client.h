@@ -14,10 +14,11 @@ class Client
 {
 public:
 	Client();
-	void disconnect(int e);
+	void logDisconnect(int e);
 	void packet(pkt_t *v);
 	void handler(Handler *h) {hdr = h;}
 	void encrypt(pkt_t *pkt);
+	void encryptAppend(pkt_t *src, pkt_t *dst);
 	void decrypt(pkt_t *pkt);
 	uint8_t decrypt(uint8_t c);
 

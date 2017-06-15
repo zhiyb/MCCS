@@ -1,8 +1,5 @@
-#ifndef LOGGING_H
-#define LOGGING_H
+#pragma once
 
 #include <spdlog/spdlog.h>
 
 extern std::shared_ptr<spdlog::logger> logger;
-
-#endif // LOGGING_H

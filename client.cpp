@@ -19,11 +19,11 @@ Client::Client()
 	state = State::Handshake;
 }
 
-void Client::disconnect(int e)
+void Client::logDisconnect(int e)
 {
-	if (!_playerName.empty())
-		logger->info("Player {} disconnected: {}",
-				_playerName.c_str(), strerror(e));
+	if (_playerName.empty())
+		return;
+	logger->info("Player {} disconnected: {}", _playerName.c_str(), strerror(e));
 }
 
 void Client::packet(pkt_t *v)
@@ -207,6 +207,14 @@ void Client::encrypt(pkt_t *pkt)
 {
 	int len = 0;
 	EVP_EncryptUpdate(&enc, pkt->data(), &len, pkt->data(), pkt->size());
+}
+
+void Client::encryptAppend(pkt_t *src, pkt_t *dst)
+{
+	size_t s = dst->size();
+	dst->resize(s + src->size());
+	int len = 0;
+	EVP_EncryptUpdate(&enc, dst->data() + s, &len, src->data(), src->size());
 }
 
 void Client::decrypt(pkt_t *pkt)

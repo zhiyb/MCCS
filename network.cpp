@@ -28,34 +28,84 @@ void Network::close()
 
 bool Network::listen()
 {
+	// Listening on IPv6 will also bind to IPv4 (see flag IPV6_V6ONLY)
+	sd.listen = listen6();
+	return sd.listen != -1;
+}
+
+int Network::listen4()
+{
 	int flag = 1;
-	sd.listen = ::socket(AF_INET, SOCK_STREAM, 0);
-	if (sd.listen == -1)
-		goto error;
-	setsockopt(sd.listen, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
+	int sd = ::socket(AF_INET, SOCK_STREAM, 0);
+	if (sd == -1) {
+		logger->warn("Cannot create IPv4 socket: {}", strerror(errno));
+		goto close;
+	}
+	if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int)) == -1) {
+		logger->warn("Cannot configure IPv4 socket: {}", strerror(errno));
+		goto close;
+	}
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET;
 	addr.sin_port = nport();
 	addr.sin_addr.s_addr = naddr();
-	if (::bind(sd.listen, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+	if (::bind(sd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+		logger->warn("Cannot bind IPv4 socket: {}", strerror(errno));
 		goto close;
-	if (::listen(sd.listen, 16) == -1)
+	}
+	if (::listen(sd, 16) == -1) {
+		logger->warn("Cannot listen on IPv4: {}", strerror(errno));
 		goto close;
-	return true;
+	}
+	return sd;
 
 close:
-	::close(sd.listen);
-error:
+	if (sd != -1)
+		::close(sd);
 	_errno = errno;
-	return false;
+	return -1;
+}
+
+int Network::listen6()
+{
+	int flag = 1;
+	int sd = ::socket(AF_INET6, SOCK_STREAM, 0);
+	if (sd == -1) {
+		logger->warn("Cannot create IPv6 socket: {}", strerror(errno));
+		goto close;
+	}
+	if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int)) == -1) {
+		logger->warn("Cannot configure IPv6 socket: {}", strerror(errno));
+		goto close;
+	}
+	struct sockaddr_in6 addr;
+	memset(&addr, 0, sizeof(struct sockaddr_in6));
+	addr.sin6_family = AF_INET6;
+	addr.sin6_port = nport();
+	addr.sin6_addr = naddr6();
+	if (::bind(sd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+		logger->warn("Cannot bind IPv6 socket: {}", strerror(errno));
+		goto close;
+	}
+	if (::listen(sd, 16) == -1) {
+		logger->warn("Cannot listen on IPv6: {}", strerror(errno));
+		goto close;
+	}
+	return sd;
+
+close:
+	if (sd != -1)
+		::close(sd);
+	_errno = errno;
+	return -1;
 }
 
 bool Network::process()
 {
 	logger->info("Network process started");
 	while (true) {
-		int s = ::accept(sd.listen, NULL, NULL);
+		int s = accept4(sd.listen, NULL, 0, SOCK_NONBLOCK);
 		if (s < 0)
 			goto error;
 		int flag = 1;

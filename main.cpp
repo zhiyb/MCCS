@@ -1,5 +1,4 @@
 #include <string.h>
-#include <iostream>
 #include <openssl/err.h>
 #include "network.h"
 #include "status.h"
@@ -8,9 +7,6 @@
 
 std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("console");
 
-using std::cerr;
-using std::cout;
-using std::endl;
 using namespace Protocol;
 
 int main(int argc, char *argv[])
@@ -31,8 +27,7 @@ int main(int argc, char *argv[])
 
 	Network n;
 	if (!n.listen()) {
-		logger->error("Cannot listen on {}: {}",
-				n.host().c_str(), strerror(n.err()));
+		logger->error("Cannot listen on {}", n.host().c_str());
 		return 1;
 	}
 	logger->info("Listening on {}", n.host().c_str());

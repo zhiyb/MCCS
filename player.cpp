@@ -67,13 +67,13 @@ void Player::tick()
 	if (tp.pending)
 		return;
 	if (_init) {
+		_init = false;
 		chunkCoord_t sChunk = positionToChunkCoord(server.pos);
 		chunkCoord_t iChunk = sChunk - chunkCoord_t({3, 3});
 		for (int i = 0; i != 7; i++)
 			for (int j = 0; j != 7; j++)
 				sendChunk(iChunk + chunkCoord_t({i, j}));
 		teleport(server.pos, server.look);
-		_init = false;
 		return;
 	}
 	server.pos = client.pos;

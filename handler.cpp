@@ -14,7 +14,6 @@
 
 using std::vector;
 using std::mutex;
-using std::unique_lock;
 using namespace Protocol;
 
 Handler::Handler(int sd, int seed)
@@ -120,15 +119,14 @@ void Handler::ioSocketRCB(ev::io &w, int revents)
 
 void Handler::ioSocketWCB(ev::io &w, int revents)
 {
-	unique_lock<mutex> locker(lck);
-	if (sendQueue.empty()) {
+	lck.lock();
+	if (sendQueue.empty())
 		ioSocketW->stop();
-		return;
-	}
-	if (!send() && err() != EAGAIN && err() != EWOULDBLOCK) {
+	else if (!send() && err() != EAGAIN && err() != EWOULDBLOCK) {
 		ioSocketW->stop();
 		disconnect();
 	}
+	lck.unlock();
 }
 
 bool Handler::send()
@@ -168,9 +166,10 @@ void Handler::send(pkt_t *v)
 		c.encryptAppend(v, &pkt);
 	} else
 		pktPushByteArray(&pkt, v->data(), v->size());
-	unique_lock<mutex> locker(lck);
+	lck.lock();
 	sendQueue.insert(sendQueue.end(), pkt.begin(), pkt.end());
 	ioSocketW->start(_sd, ev::WRITE);
+	lck.unlock();
 }
 
 void Handler::recv(pkt_t *v)

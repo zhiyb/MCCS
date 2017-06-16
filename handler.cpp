@@ -13,6 +13,8 @@
 #include "protocols.h"
 
 using std::vector;
+using std::mutex;
+using std::unique_lock;
 using namespace Protocol;
 
 Handler::Handler(int sd, int seed)
@@ -118,12 +120,15 @@ void Handler::ioSocketRCB(ev::io &w, int revents)
 
 void Handler::ioSocketWCB(ev::io &w, int revents)
 {
-	if (!sendQueue.empty() && send())
-		if (!err() || err() == EAGAIN || err() == EWOULDBLOCK)
-			return;
-	ioSocketW->stop();
-	if (err() || _aboutToDisconnect)
+	unique_lock<mutex> locker(lck);
+	if (sendQueue.empty()) {
+		ioSocketW->stop();
+		return;
+	}
+	if (!send() && err() != EAGAIN && err() != EWOULDBLOCK) {
+		ioSocketW->stop();
 		disconnect();
+	}
 }
 
 bool Handler::send()
@@ -137,11 +142,14 @@ bool Handler::send()
 		_errno = errno ?: ECONNABORTED;
 	else {
 		sendQueue.erase(sendQueue.begin(), sendQueue.begin() + s);
-		_errno = sendQueue.empty() ? 0 : EAGAIN;
-		if (sendQueue.empty())
-			return false;
+		if (sendQueue.empty()) {
+			ioSocketW->stop();
+			_errno = 0;
+			return true;
+		}
+		_errno = EAGAIN;
 	}
-	return true;
+	return false;
 }
 
 void Handler::send(pkt_t *v)
@@ -160,6 +168,7 @@ void Handler::send(pkt_t *v)
 		c.encryptAppend(v, &pkt);
 	} else
 		pktPushByteArray(&pkt, v->data(), v->size());
+	unique_lock<mutex> locker(lck);
 	sendQueue.insert(sendQueue.end(), pkt.begin(), pkt.end());
 	ioSocketW->start(_sd, ev::WRITE);
 }

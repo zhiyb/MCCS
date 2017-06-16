@@ -1,9 +1,10 @@
 #include "tick.h"
 #include "logging.h"
+#include "server.h"
 
 using namespace std;
 
-static const double period = 1;
+static const double period = 0.05;
 
 void Tick::start()
 {
@@ -56,9 +57,7 @@ void Tick::workerCB(ev::async &w, int revents)
 {
 	uint32_t diff = _tick - _wTick;
 	_wTick = _tick;
+	server->tick(diff);
 	if (_stop)
 		w.stop();
-	if (diff > 1)
-		logger->warn("Skipping {} ticks", diff);
-	logger->warn("Current tick: {}", tick());
 }

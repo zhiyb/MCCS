@@ -41,8 +41,8 @@ public:
 	void playerPositionLook(const dPosition_t &pos, const fLook_t &look, uint8_t relative);
 	void disconnectPlayer(const Chat::Message &reason);
 
-	void sendNewChunks(double x, double z);
-	void sendNewChunk(int32_t x, int32_t z);
+	void sendNewChunk(const chunkCoord_t &c);
+	void unloadChunk(const chunkCoord_t &c);
 	void pushChunkSection(pkt_t *p, int32_t x, int32_t z, bool biome);
 
 private:

@@ -24,8 +24,19 @@ public:
 	std::string description() const;
 	std::string toJson() const;
 
+	uint8_t difficulty() const {return _difficulty;}
+	void difficulty(uint8_t v) {_difficulty = v;}
+	const std::string &levelType() const {return _level;}
+	void levelType(const std::string &s) {_level = s;}
+	bool debug() const {return _debug;}
+	void debug(bool e) {_debug = e;}
+
 private:
 	int _online;
+	uint8_t _difficulty;	// enum: Difficulty
+	std::string _level;	// Level type
+	bool _debug;		// Client debug info
+
 	RSA *rsa;
 };
 

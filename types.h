@@ -16,8 +16,8 @@ enum MainHand {Left = 0, Right = 1};
 typedef int32_t eid_t;
 
 typedef struct iPosition_t {
-	uint32_t x, z;
-	uint16_t y;
+	int32_t x, z;
+	int16_t y;
 } iPosition_t;
 
 typedef struct dPosition_t {
@@ -27,3 +27,57 @@ typedef struct dPosition_t {
 typedef struct fLook_t {
 	float yaw, pitch;
 } fLook_t;
+
+typedef struct chunkCoord_t {
+	int32_t x, z;
+
+	const chunkCoord_t &operator-=(const chunkCoord_t &a)
+	{
+		x -= a.x;
+		z -= a.z;
+		return *this;
+	}
+} chunkCoord_t;
+
+static inline const chunkCoord_t positionToChunkCoord(const dPosition_t &pos)
+{
+	struct chunkCoord_t c;
+	c.x = pos.x / 16;
+	c.z = pos.z / 16;
+	return c;
+}
+
+namespace std {
+	template <> struct hash<chunkCoord_t>
+	{
+		size_t operator()(const chunkCoord_t &v) const
+		{
+			return hash<int32_t>()(v.x) ^ hash<int32_t>()(v.z);
+		}
+	};
+}
+
+static inline bool operator==(const chunkCoord_t &a, const chunkCoord_t &b)
+{
+	return a.x == b.x && a.z == b.z;
+}
+
+static inline bool operator!=(const chunkCoord_t &a, const chunkCoord_t &b)
+{
+	return a.x != b.x || a.z != b.z;
+}
+
+static inline const chunkCoord_t operator-(const chunkCoord_t &a)
+{
+	return {-a.x, -a.z};
+}
+
+static inline const chunkCoord_t operator+(const chunkCoord_t &a, const chunkCoord_t &b)
+{
+	return {a.x + b.x, a.z + b.z};
+}
+
+static inline const chunkCoord_t operator-(const chunkCoord_t &a, const chunkCoord_t &b)
+{
+	return {a.x - b.x, a.z - b.z};
+}

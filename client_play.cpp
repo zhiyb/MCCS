@@ -31,6 +31,7 @@ void Client::play(const Packet *p)
 		player->chatMode(pp.mode() | (pp.colors() ? ChatMode::Colors : 0));
 		player->skinDisplay(pp.skinParts());
 		player->mainHand(pp.mainHand());
+		player->spawn();
 		return;
 	}
 	case Play::Server::PlayerPosition: {
@@ -79,8 +80,6 @@ void Client::playInit()
 	player = new Player(this);
 	if (!player->init(_playerName))
 		hdr->disconnect();
-
-	sendNewChunks(0.f, 0.f);
 }
 
 void Client::join(eid_t eid, uint8_t gameMode, int32_t dimension, uint8_t difficulty, std::string level, bool debug) const
@@ -141,34 +140,30 @@ void Client::disconnectPlayer(const Chat::Message &reason)
 	hdr->disconnect();
 }
 
-void Client::sendNewChunks(double x, double z)
+void Client::sendNewChunk(const chunkCoord_t &c)
 {
-	int32_t ix = round(x / 16.f) - 3, iz = round(z / 16.f) - 3;
-	for (int i = 0; i != 7; i++)
-		for (int j = 0; j != 7; j++)
-			sendNewChunk(ix + i, iz + j);
+	// Send chunk data
+	pkt_t pkt;
+	pktPushVarInt(&pkt, pktid(Play::Client::ChunkData));
+	pktPushInt(&pkt, c.x);
+	pktPushInt(&pkt, c.z);
+	pktPushBoolean(&pkt, true);		// Ground-up continuous
+	pktPushVarInt(&pkt, 0x0001);		// Primary bit mask
+	pushChunkSection(&pkt, c.x, c.z, true);	// Chunk section data
+	pktPushVarInt(&pkt, 0);			// Block entities #
+	pktPushByteArray(&pkt, 0, 0);		// Block entities NBT data
+	hdr->send(&pkt);
 }
 
-void Client::sendNewChunk(int32_t x, int32_t z)
+void Client::unloadChunk(const chunkCoord_t &c)
 {
 	// Unload chunk
 	pkt_t pkt;
 	pktPushVarInt(&pkt, pktid(Play::Client::UnloadChunk));
-	pktPushInt(&pkt, x);
-	pktPushInt(&pkt, z);
+	pktPushInt(&pkt, c.x);
+	pktPushInt(&pkt, c.z);
 	hdr->send(&pkt);
 
-	// Send chunk data
-	pkt.clear();
-	pktPushVarInt(&pkt, pktid(Play::Client::ChunkData));
-	pktPushInt(&pkt, x);
-	pktPushInt(&pkt, z);
-	pktPushBoolean(&pkt, true);		// Ground-up continuous
-	pktPushVarInt(&pkt, 0x0001);		// Primary bit mask
-	pushChunkSection(&pkt, x, z, true);	// Chunk section data
-	pktPushVarInt(&pkt, 0);			// Block entities #
-	pktPushByteArray(&pkt, 0, 0);		// Block entities NBT data
-	hdr->send(&pkt);
 }
 
 void Client::pushChunkSection(pkt_t *p, int32_t x, int32_t z, bool biome)
@@ -185,7 +180,7 @@ void Client::pushChunkSection(pkt_t *p, int32_t x, int32_t z, bool biome)
 	int cnt = 0;
 	int64_t v = 0;
 	for (int i = 0; i != 16 * 16 * 16; i++) {
-		const auto block = 2ul << 4;	// Grass
+		unsigned long block = 2u << 4;	// Grass
 		int off = (i * bits) % 64;
 		v |= block << off;
 		if (off + bits >= 64) {

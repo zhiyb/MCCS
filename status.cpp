@@ -12,16 +12,21 @@
 #include "logging.h"
 #include "protocols.h"
 #include "chat.h"
+#include "types.h"
 
 using std::string;
 using std::stringstream;
 
 Status status;
 
-Status::Status() : _online(0)
+Status::Status()
 {
 	srand(time(NULL));
 	rsa = 0;
+	_online = 0;
+	_difficulty = Difficulty::Peaceful;
+	_level = "default";
+	_debug = true;
 }
 
 Status::~Status()

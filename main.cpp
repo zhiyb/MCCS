@@ -5,15 +5,18 @@
 #include "protocols.h"
 #include "logging.h"
 #include "tick.h"
-
-std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("console");
+#include "server.h"
 
 using namespace Protocol;
+
+std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("console");
+Server *server;
 
 int main(int argc, char *argv[])
 {
 	//logger->set_pattern("[%Y-%m-%d %T t%t] [%l] %v");
 	logger->set_pattern("[%T %t/%l]: %v");
+	logger->set_level(spdlog::level::debug);
 
 	if (status.keygen() != 0) {
 		logger->error("Key generation failed: {}", ERR_get_error());
@@ -33,15 +36,17 @@ int main(int argc, char *argv[])
 	}
 	logger->info("Listening on {}", n.host().c_str());
 
+	Server s;
+	server = &s;
+
 	Tick t;
 	t.start();
-	if (!n.process()) {
-		logger->error("Network process failed: {}", strerror(n.err()));
-		goto close;
-	}
 
-close:
-	logger->info("Closing socket...");
+	if (!n.process())
+		logger->error("Network process failed: {}", strerror(n.err()));
+
+	logger->info("Shutting down...");
+	t.stop();
 	n.close();
 	return 0;
 }

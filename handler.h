@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <deque>
+#include <mutex>
 #include <random>
 #include <ev++.h>
 #include "packet.h"
@@ -44,6 +45,7 @@ private:
 	int32_t pktLength, pktSize;
 	pkt_t pktRecv;
 	std::deque<uint8_t> sendQueue;
+	std::mutex lck;
 
 	Client c;
 	int _errno;

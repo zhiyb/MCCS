@@ -180,7 +180,7 @@ void Client::pushChunkSection(pkt_t *p, int32_t x, int32_t z, bool biome)
 	int cnt = 0;
 	int64_t v = 0;
 	for (int i = 0; i != 16 * 16 * 16; i++) {
-		unsigned long block = 2u << 4;	// Grass
+		unsigned long block = 2ul << 4;	// Grass
 		int off = (i * bits) % 64;
 		v |= block << off;
 		if (off + bits >= 64) {

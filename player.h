@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <unordered_set>
 #include <stdint.h>
 #include "types.h"
@@ -54,6 +55,7 @@ private:
 	iPosition_t _spawnPos;
 
 	std::unordered_set<chunkCoord_t> chunks;
+	std::vector<chunkCoord_t> chunksNearby;
 
 	struct {
 		dPosition_t pos;

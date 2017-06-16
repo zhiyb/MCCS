@@ -41,7 +41,8 @@ bool Player::init(const string &name)
 
 void Player::spawn()
 {
-	::server->registerItem(this);
+	if (_init)
+		::server->registerItem(this);
 }
 
 inline void Player::sendSpawnPosition() {c->spawnPosition(_spawnPos);}
@@ -86,28 +87,21 @@ void Player::updateChunks()
 	// Calculate chunks to be unloaded (distance > sqrt(2) * view)
 	chunkCoord_t chunk = positionToChunkCoord(server.pos);
 	std::unordered_set<chunkCoord_t> unloads;
-	for (auto &ck: chunks) {
+	for (const auto &ck: chunks) {
 		chunkCoord_t d = chunk - ck;
 		if (d.x * d.x + d.z * d.z > _view * _view * 2)
 			unloads.insert(ck);
 	}
 
-	// Calculate distance checking buffer
-	bool dist[2 * _view + 1][2 * _view + 1];
-	for (int i = 0; i != 2 * _view + 1; i++)
-		dist[i][i] = (i - _view) * (i - _view) <= _view * _view;
-
 	// Send nearby chunk data
-	chunk -= chunkCoord_t({_view, _view});
-	for (int x = 0; x != 2 * _view + 1; x++)
-		for (int z = 0; z != 2 * _view + 1; z++) {
-			chunkCoord_t ck = chunk + chunkCoord_t({x, z});
-			if (dist[x][z] && chunks.find(ck) == chunks.end())
-				sendChunk(ck);
-		}
+	for (const auto &c: chunksNearby) {
+		chunkCoord_t ck = chunk + c;
+		if (chunks.find(ck) == chunks.end())
+			sendChunk(ck);
+	}
 
 	// Unload chunks
-	for (auto &ck: unloads)
+	for (const auto &ck: unloads)
 		unloadChunk(ck);
 }
 
@@ -124,7 +118,20 @@ void Player::locale(const string &locale)
 
 void Player::viewDistance(uint8_t d)
 {
+	if (d == _view)
+		return;
 	_view = d;
+	// Recalculate nearby chunk coordinates
+	typedef tuple<int32_t, int32_t, int32_t> data_t;
+	vector<data_t> dist;
+	for (int32_t x = -d; x != d + 1; x++)
+		for (int32_t z = -d; z != d + 1; z++)
+			dist.push_back(make_tuple(x, z, d * d - x * x - z * z));
+	sort(dist.begin(), dist.end(), [](const data_t &a, const data_t &b) {return get<2>(a) > get<2>(b);});
+	chunksNearby.clear();
+	for (auto &d: dist)
+		if (get<2>(d) >= 0)
+			chunksNearby.push_back({get<0>(d), get<1>(d)});
 }
 
 void Player::chatMode(int mode)

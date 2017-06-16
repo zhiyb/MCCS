@@ -18,23 +18,12 @@ using namespace Protocol;
 Handler::Handler(int sd, int seed)
 {
 	_sd = sd;
-	loop = 0;
+	_aboutToDisconnect = false;
 	ioSocketR = 0;
 	ioSocketW = 0;
 	tWatchdog = 0;
 	tKeepAlive = 0;
 	_rand.seed(seed);
-}
-
-Handler::~Handler()
-{
-	// The destructor automatically stops the watcher if it is active
-	delete ioSocketR;
-	delete ioSocketW;
-	delete tWatchdog;
-	delete tKeepAlive;
-	if (loop)
-		ev_loop_destroy(loop);
 }
 
 void Handler::process()
@@ -52,7 +41,7 @@ void Handler::process()
 	logger->info("Connection established from {}", Network::saddrtostr(&addr).c_str());
 #endif
 
-	loop = ev_loop_new(EVFLAG_AUTO | EVFLAG_NOENV);
+	struct ev_loop *loop = ev_loop_new(EVFLAG_AUTO | EVFLAG_NOENV);
 	ioSocketR = new ev::io(loop);
 	ioSocketR->set<Handler, &Handler::ioSocketRCB>(this);
 	ioSocketR->start(_sd, ev::READ);
@@ -69,16 +58,30 @@ void Handler::process()
 	c.handler(this);
 	pktLength = 0;
 	while (ev_run(loop, 0));
+	// The destructor automatically stops the watcher if it is active
+	delete ioSocketR;
+	delete ioSocketW;
+	delete tWatchdog;
+	delete tKeepAlive;
+	ev_loop_destroy(loop);
 }
 
 void Handler::disconnect(int error)
 {
 	error = error ?: err();
+	error = (error == EAGAIN || error == EWOULDBLOCK) ? 0 : error;
+	if (error == 0 && !_aboutToDisconnect && !sendQueue.empty()) {
+		// Gracefully disconnect (wait for sendQueue empty)
+		feed();
+		_aboutToDisconnect = true;
+		return;
+	}
+
 	c.logDisconnect(error);
-	ioSocketR->stop();
-	ioSocketW->stop();
 	tWatchdog->stop();
 	tKeepAlive->stop();
+	ioSocketR->stop();
+	ioSocketW->stop();
 	close(_sd);
 	_sd = -1;
 }
@@ -90,12 +93,13 @@ void Handler::tWatchdogCB(ev::timer &w, int revents)
 
 void Handler::tKeepAliveCB(ev::timer &w, int revents)
 {
-	c.keepAlive();
+	if (!_aboutToDisconnect)
+		c.keepAlive();
 }
 
 void Handler::ioSocketRCB(ev::io &w, int revents)
 {
-	if (!(revents & EV_READ))
+	if (_aboutToDisconnect)
 		return;
 	recv(&pktRecv);
 	if (err() == EAGAIN || err() == EWOULDBLOCK)
@@ -114,12 +118,16 @@ void Handler::ioSocketRCB(ev::io &w, int revents)
 
 void Handler::ioSocketWCB(ev::io &w, int revents)
 {
-	if (!(revents & EV_WRITE))
-		return;
-	if (sendQueue.empty()) {
-		ioSocketW->stop();
-		return;
-	}
+	if (!sendQueue.empty() && send())
+		if (!err() || err() == EAGAIN || err() == EWOULDBLOCK)
+			return;
+	ioSocketW->stop();
+	if (err() || _aboutToDisconnect)
+		disconnect();
+}
+
+bool Handler::send()
+{
 	errno = 0;
 	pkt_t data(sendQueue.begin(), sendQueue.end());
 	ssize_t s = ::send(_sd, data.data(), data.size(), MSG_NOSIGNAL);
@@ -131,14 +139,15 @@ void Handler::ioSocketWCB(ev::io &w, int revents)
 		sendQueue.erase(sendQueue.begin(), sendQueue.begin() + s);
 		_errno = sendQueue.empty() ? 0 : EAGAIN;
 		if (sendQueue.empty())
-			ioSocketW->stop();
+			return false;
 	}
-	if (err() && err() != EAGAIN && err() != EWOULDBLOCK)
-		disconnect();
+	return true;
 }
 
 void Handler::send(pkt_t *v)
 {
+	if (_aboutToDisconnect)
+		return;
 	pktid_t id = Packet(v).id();
 	if (id < 0) {
 		logger->warn("Ignored packet of type {} size {}", protocols.hashToStr(-id), v->size());

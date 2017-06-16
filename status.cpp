@@ -1,6 +1,5 @@
 #include <string>
 #include <sstream>
-#include <iostream>
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/ostreamwrapper.h>
@@ -12,6 +11,7 @@
 #include "status.h"
 #include "logging.h"
 #include "protocols.h"
+#include "chat.h"
 
 using std::string;
 using std::stringstream;
@@ -77,27 +77,22 @@ std::string Status::description() const
 string Status::toJson() const
 {
 	using namespace rapidjson;
-	Document d;
-	d.SetObject();
+	Document d(kObjectType);
 	auto &a = d.GetAllocator();
 
-	Value ver;
-	ver.SetObject();
+	Value ver(kObjectType);
 	string vname = version();
-	ver.AddMember("name", Value(vname.c_str(), vname.length(), a), a);
+	ver.AddMember("name", StringRef(vname.c_str()), a);
 	ver.AddMember("protocol", protocol(), a);
 	d.AddMember("version", ver, a);
 
-	Value player;
-	player.SetObject();
+	Value player(kObjectType);
 	player.AddMember("max", playersMax(), a);
 	player.AddMember("online", playersOnline(), a);
 	d.AddMember("players", player, a);
 
-	Value desc;
-	desc.SetObject();
-	string dtext = description();
-	desc.AddMember("text", Value(dtext.c_str(), dtext.length(), a), a);
+	Value desc(kObjectType);
+	Chat::Text(description()).write(desc, a);
 	d.AddMember("description", desc, a);
 
 	stringstream ss;

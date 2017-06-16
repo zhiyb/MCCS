@@ -4,6 +4,7 @@
 #include "status.h"
 #include "protocols.h"
 #include "logging.h"
+#include "tick.h"
 
 std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("console");
 
@@ -32,6 +33,8 @@ int main(int argc, char *argv[])
 	}
 	logger->info("Listening on {}", n.host().c_str());
 
+	Tick t;
+	t.start();
 	if (!n.process()) {
 		logger->error("Network process failed: {}", strerror(n.err()));
 		goto close;

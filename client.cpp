@@ -8,16 +8,24 @@
 #include "status.h"
 #include "packets/packets.h"
 #include "protocols/id.h"
+#include "player.h"
 
 using namespace Protocol;
 
 Client::Client()
 {
+	hdr = 0;
+	player = 0;
 	_protocol = 0;
 	_version = 0;
 	compressed = false;
 	encrypted = false;
 	state = State::Handshake;
+}
+
+Client::~Client()
+{
+	delete player;
 }
 
 void Client::packet(pkt_t *v)
@@ -69,7 +77,13 @@ void Client::logDisconnect(int e)
 {
 	if (_playerName.empty())
 		return;
-	logger->info("Player {} disconnected: {}", _playerName.c_str(), strerror(e));
+	if (!e && !_reason.empty())
+		logger->info("Player {} disconnected: {}", _playerName.c_str(), _reason);
+	else {
+		if (player)
+			player->disconnected(e);
+		logger->info("Player {} disconnected: {}", _playerName.c_str(), strerror(e));
+	}
 }
 
 void Client::handshake(const Packet *p)

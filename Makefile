@@ -2,7 +2,7 @@
 
 PRG	= mccs
 SRC	= main.cpp network.cpp handler.cpp packet.cpp status.cpp protocols.cpp \
-	  client.cpp client_play.cpp
+	  client.cpp client_play.cpp player.cpp chat.cpp tick.cpp
 
 #CROSS	= mipsel-linux-
 OPTIMIZE	= -g -O3

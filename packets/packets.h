@@ -1,5 +1,4 @@
-#ifndef PKT_PACKETS_H
-#define PKT_PACKETS_H
+#pragma once
 
 #include <string>
 #include <sstream>
@@ -13,16 +12,5 @@
 #include "ping.h"
 #include "login.h"
 
-#include "tpconfirm.h"
-#include "clientsettings.h"
-#include "closewindow.h"
-#include "pluginmsg.h"
-#include "keepalive.h"
-#include "playerpos.h"
-#include "playerposlook.h"
-#include "playerlook.h"
-#include "entityact.h"
-
 #undef PKT_ASSERT
-
-#endif // PKT_PACKETS_H
+#undef PKT_DUMP

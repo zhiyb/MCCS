@@ -103,7 +103,7 @@ close:
 
 bool Network::process()
 {
-	logger->info("Network process started");
+	logger->info("Network processing started");
 	while (true) {
 		int s = accept4(sd.listen, NULL, 0, SOCK_NONBLOCK);
 		if (s < 0)

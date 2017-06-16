@@ -11,13 +11,11 @@ class Handler
 {
 public:
 	Handler(int sd, int seed = 0);
-	~Handler();
 	bool closed() const {return _sd == -1;}
 
 	std::thread *thread() const {return _th;}
 	void thread(std::thread *th) {_th = th;}
-	struct ev_loop *evLoop() {return loop;}
-	void feed() {tWatchdog->again();}
+	void feed() {if (!_aboutToDisconnect) tWatchdog->again();}
 
 	uint32_t rand() {return _rand();}
 	int err() const {return _errno;}
@@ -27,6 +25,7 @@ public:
 	void disconnect(int error = 0);
 
 private:
+	bool send();
 	void recv(pkt_t *v);
 	int32_t readVarInt(pkt_t *pkt);
 
@@ -39,7 +38,6 @@ private:
 	std::thread *_th;
 	std::minstd_rand _rand;
 
-	struct ev_loop *loop;
 	ev::io *ioSocketR, *ioSocketW;
 	ev::timer *tWatchdog, *tKeepAlive;
 
@@ -50,4 +48,5 @@ private:
 	Client c;
 	int _errno;
 	int _sd;
+	bool _aboutToDisconnect;
 };

@@ -53,11 +53,24 @@ void pktPushString(pkt_t *pkt, std::string str)
 	pkt->insert(pkt->end(), str.begin(), str.end());
 }
 
-void pktPushPosition(pkt_t *pkt, int32_t x, int16_t y, int32_t z)
+void pktPushPosition(pkt_t *pkt, const iPosition_t &pos)
 {
-	int64_t v = (((int64_t)x & 0x3ffffff) << 38) |
-		(((int64_t)y & 0xfff) << 26) | ((int64_t)z & 0x3ffffff);
-	pktPushLong(pkt, v);
+	pktPushLong(pkt, (((int64_t)pos.x & 0x3ffffff) << 38) |
+			(((int64_t)pos.y & 0xfff) << 26) |
+			((int64_t)pos.z & 0x3ffffff));
+}
+
+void pktPushPosition(pkt_t *pkt, const dPosition_t &pos)
+{
+	pktPushDouble(pkt, pos.x);
+	pktPushDouble(pkt, pos.y);
+	pktPushDouble(pkt, pos.z);
+}
+
+void pktPushLook(pkt_t *pkt, const fLook_t &look)
+{
+	pktPushFloat(pkt, look.yaw);
+	pktPushFloat(pkt, look.pitch);
 }
 
 int8_t Packet::readByte()

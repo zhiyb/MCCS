@@ -1,5 +1,4 @@
-#ifndef PKT_PLAYERLOOK_H
-#define PKT_PLAYERLOOK_H
+#pragma once
 
 class PktPlayerLook : public Packet
 {
@@ -33,5 +32,3 @@ private:
 	float _yaw, _pitch;
 	bool _onGround;
 };
-
-#endif

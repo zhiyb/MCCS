@@ -4,8 +4,7 @@
 #include <stdint.h>
 #include <vector>
 #include <string>
-
-#define FP1	(1u << 5)
+#include "types.h"
 
 typedef std::vector<uint8_t> pkt_t;
 typedef std::vector<uint8_t> byteArray_t;
@@ -20,7 +19,9 @@ void pktPushDouble(pkt_t *pkt, double v);
 void pktPushVarInt(pkt_t *pkt, int32_t v);
 void pktPushString(pkt_t *pkt, std::string str);
 static inline void pktPushByteArray(pkt_t *pkt, const void *p, const size_t s) {pkt->insert(pkt->end(), (char *)p, (char *)p + s);}
-void pktPushPosition(pkt_t *pkt, int32_t x, int16_t y, int32_t z);
+void pktPushPosition(pkt_t *pkt, const iPosition_t &pos);
+void pktPushPosition(pkt_t *pkt, const dPosition_t &pos);
+void pktPushLook(pkt_t *pkt, const fLook_t &look);
 
 class Packet
 {

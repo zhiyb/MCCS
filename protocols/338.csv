@@ -1,0 +1,125 @@
+State,Bound,ID,Type
+Handshake,Server,0x00,Handshake
+Login,Client,0x00,Disconnect
+Login,Client,0x01,Encryption
+Login,Client,0x02,Success
+Login,Client,0x03,Compression
+Login,Server,0x00,Start
+Login,Server,0x01,Encryption
+Status,Client,0x00,Response
+Status,Client,0x01,Pong
+Status,Server,0x00,Request
+Status,Server,0x01,Ping
+Play,Client,0x00,Spawn Object
+Play,Client,0x01,Spawn Exp Orb
+Play,Client,0x02,Spawn Global Entity
+Play,Client,0x03,Spawn Mob
+Play,Client,0x04,Spawn Painting
+Play,Client,0x05,Spawn Player
+Play,Client,0x06,Animation
+Play,Client,0x07,Statistics
+Play,Client,0x08,Block Break Animation
+Play,Client,0x09,Update Block Entity
+Play,Client,0x0a,Block Action
+Play,Client,0x0b,Block Change
+Play,Client,0x0c,Boss Bar
+Play,Client,0x0d,Server Difficulty
+Play,Client,0x0e,Tab Complete
+Play,Client,0x0f,Chat Message
+Play,Client,0x10,Multi Block Change
+Play,Client,0x11,Confirm
+Play,Client,0x12,Close Window
+Play,Client,0x13,Open Window
+Play,Client,0x14,Window Items
+Play,Client,0x15,Window Property
+Play,Client,0x16,Set Slot
+Play,Client,0x17,Set Cooldown
+Play,Client,0x18,Plugin Message
+Play,Client,0x19,Named Sound Effect
+Play,Client,0x1a,Disconnect
+Play,Client,0x1b,Entity Status
+Play,Client,0x1c,Explosion
+Play,Client,0x1d,Unload Chunk
+Play,Client,0x1e,Change Game State
+Play,Client,0x1f,Keep Alive
+Play,Client,0x20,Chunk Data
+Play,Client,0x21,Effect
+Play,Client,0x22,Particle
+Play,Client,0x23,Join Game
+Play,Client,0x24,Map
+Play,Client,0x25,Entity
+Play,Client,0x26,Entity Move
+Play,Client,0x27,Entity Look Move
+Play,Client,0x28,Entity Look
+Play,Client,0x29,Vehicle Move
+Play,Client,0x2a,Open Sign Editor
+Play,Client,0x2b,Craft Recipe Response
+Play,Client,0x2c,Player Abilities
+Play,Client,0x2d,Combat Event
+Play,Client,0x2e,Player List Item
+Play,Client,0x2f,Player Position Look
+Play,Client,0x30,Use Bed
+Play,Client,0x31,Unlock Recipes
+Play,Client,0x32,Destroy Entities
+Play,Client,0x33,Remove Entity Effect
+Play,Client,0x34,Resource Pack Send
+Play,Client,0x35,Respawn
+Play,Client,0x36,Entity Head Look
+Play,Client,0x37,Select Advancement Tab
+Play,Client,0x38,World Border
+Play,Client,0x39,Camera
+Play,Client,0x3a,Held Item Change
+Play,Client,0x3b,Display Scoreboard
+Play,Client,0x3c,Entity Metadata
+Play,Client,0x3d,Attach Entity
+Play,Client,0x3e,Entity Velocity
+Play,Client,0x3f,Entity Equipment
+Play,Client,0x40,Set Exp
+Play,Client,0x41,Update Health
+Play,Client,0x42,Scoreboard Objective
+Play,Client,0x43,Set Passengers
+Play,Client,0x44,Teams
+Play,Client,0x45,Update Score
+Play,Client,0x46,Spawn Position
+Play,Client,0x47,Time Update
+Play,Client,0x48,Title
+Play,Client,0x49,Sound Effect
+Play,Client,0x4a,Player List Header Footer
+Play,Client,0x4b,Collect Item
+Play,Client,0x4c,Entity Teleport
+Play,Client,0x4d,Advancements
+Play,Client,0x4e,Entity Properties
+Play,Client,0x4f,Entity Effect
+Play,Server,0x00,Teleport Confirm
+Play,Server,0x01,Tab Complete
+Play,Server,0x02,Chat Message
+Play,Server,0x03,Client Status
+Play,Server,0x04,Client Settings
+Play,Server,0x05,Confirm Transaction
+Play,Server,0x06,Enchant Item
+Play,Server,0x07,Click Window
+Play,Server,0x08,Close Window
+Play,Server,0x09,Plugin Message
+Play,Server,0x0a,Use Entity
+Play,Server,0x0b,Keep Alive
+Play,Server,0x0c,Player
+Play,Server,0x0d,Player Position
+Play,Server,0x0e,Player Position Look
+Play,Server,0x0f,Player Look
+Play,Server,0x10,Vehicle Move
+Play,Server,0x11,Steer Boat
+Play,Server,0x12,Craft Recipe Request
+Play,Server,0x13,Player Abilities
+Play,Server,0x14,Player Digging
+Play,Server,0x15,Entity Action
+Play,Server,0x16,Steer Vehicle
+Play,Server,0x17,Crafting Book Data
+Play,Server,0x18,Resource Pack Status
+Play,Server,0x19,Advancement Tab
+Play,Server,0x1a,Held Item Change
+Play,Server,0x1b,Creative Inventory Action
+Play,Server,0x1c,Update Sign
+Play,Server,0x1d,Animation
+Play,Server,0x1e,Spectate
+Play,Server,0x1f,Player Block Placement
+Play,Server,0x20,Use Item

@@ -3,45 +3,38 @@ import qbs
 Project {
     minimumQbsVersion: "1.7.1"
 
-    StaticLibrary {
+    Product {
         name: "fast-cpp-csv-parser"
         Export {
             Depends {name: "cpp"}
             cpp.includePaths: ["fast-cpp-csv-parser"]
         }
-
-        files: [
-            "fast-cpp-csv-parser/LICENSE",
-            "fast-cpp-csv-parser/README.md",
-            "fast-cpp-csv-parser/csv.h",
-        ]
+        files: ["fast-cpp-csv-parser/**"]
     }
 
-    StaticLibrary {
+    Product {
         name: "rapidjson"
         Export {
             Depends {name: "cpp"}
             cpp.includePaths: ["rapidjson/include"]
         }
-
-        files: []
+        files: ["rapidjson/**"]
     }
 
-    StaticLibrary {
+    Product {
         name: "spdlog"
         Export {
             Depends {name: "cpp"}
             cpp.includePaths: ["spdlog/include"]
         }
-
-        files: []
+        files: ["spdlog/**"]
     }
 
     CppApplication {
         consoleApplication: true
         cpp.dynamicLibraries: ["ev", "crypto", "pthread", "m"]
         cpp.commonCompilerFlags: [
-            "-Wno-unused-parameter"
+            "-Wno-unused-parameter",
         ]
         cpp.cxxLanguageVersion: "c++11"
         Depends {name: "fast-cpp-csv-parser"}
@@ -50,39 +43,71 @@ Project {
 
         files: [
             "README.md",
-            "chat.cpp",
-            "chat.h",
-            "client.cpp",
-            "client.h",
-            "client_play.cpp",
-            "handler.cpp",
-            "handler.h",
             "logging.h",
             "main.cpp",
-            "network.cpp",
-            "network.h",
-            "packet.cpp",
-            "packet.h",
-            "player.cpp",
-            "player.h",
-            "protocols.cpp",
-            "protocols.h",
-            "server.cpp",
-            "server.h",
-            "status.cpp",
-            "status.h",
-            "tick.cpp",
-            "tick.h",
-            "types.h",
-            "packets/*.h",
-            "protocols/id.h",
         ]
 
         Group {
+            name: "Player"
+            files: [
+                "player.cpp",
+                "player.h",
+            ]
+        }
+
+        Group {
+            name: "Packets"
+            files: [
+                "packet.cpp",
+                "packet.h",
+                "packets/*.h",
+            ]
+        }
+
+        Group {
+            name: "Network"
+            files: [
+                "network.cpp",
+                "network.h",
+                "handler.cpp",
+                "handler.h",
+                "client.cpp",
+                "client.h",
+                "client_play.cpp",
+                "protocols.cpp",
+                "protocols.h",
+            ]
+        }
+
+        Group {
+            name: "Server"
+            files: [
+                "server.cpp",
+                "server.h",
+                "status.cpp",
+                "status.h",
+                "tick.cpp",
+                "tick.h",
+            ]
+        }
+
+        Group {
             name: "Protocols"
+            files: [
+                "types.h",
+                "chat.cpp",
+                "chat.h",
+                "protocols/id.h",
+            ]
+        }
+
+        Group {
+            name: "Protocol versions"
             qbs.install: true
             qbs.installDir: "protocols"
-            files: ["protocols/*.csv"]
+            files: [
+                "protocols/*.csv",
+            ]
         }
 
         Group {     // Properties for the produced executable

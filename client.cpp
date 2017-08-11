@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <iostream>
 #include <openssl/bio.h>
+#include <openssl/opensslv.h>
 #include "logging.h"
 #include "client.h"
 #include "handler.h"
@@ -21,11 +22,19 @@ Client::Client()
 	compressed = false;
 	encrypted = false;
 	state = State::Handshake;
+	enc = dec = 0;
 }
 
 Client::~Client()
 {
 	delete player;
+#if OPENSSL_VERSION_NUMBER >= 0x010100000
+	EVP_CIPHER_CTX_free(enc);
+	EVP_CIPHER_CTX_free(dec);
+#else
+	free(enc);
+	free(dec);
+#endif
 }
 
 void Client::packet(pkt_t *v)
@@ -221,10 +230,17 @@ bool Client::initEncryption()
 		return false;
 	if (EVP_CIPHER_iv_length(evp) != (int)_secret.size())
 		return false;
-	EVP_CIPHER_CTX_init(&enc);
-	EVP_EncryptInit_ex(&enc, evp, 0, _secret.data(), _secret.data());
-	EVP_CIPHER_CTX_init(&dec);
-	EVP_DecryptInit_ex(&dec, evp, 0, _secret.data(), _secret.data());
+#if OPENSSL_VERSION_NUMBER >= 0x010100000
+	enc = EVP_CIPHER_CTX_new();
+	dec = EVP_CIPHER_CTX_new();
+#else
+	enc = (EVP_CIPHER_CTX *)malloc(sizeof(EVP_CIPHER_CTX));
+	EVP_CIPHER_CTX_init(enc);
+	dec = (EVP_CIPHER_CTX *)malloc(sizeof(EVP_CIPHER_CTX));
+	EVP_CIPHER_CTX_init(dec);
+#endif
+	EVP_EncryptInit_ex(enc, evp, 0, _secret.data(), _secret.data());
+	EVP_DecryptInit_ex(dec, evp, 0, _secret.data(), _secret.data());
 	encrypted = true;
 	return true;
 }
@@ -232,7 +248,7 @@ bool Client::initEncryption()
 void Client::encrypt(pkt_t *pkt)
 {
 	int len = 0;
-	EVP_EncryptUpdate(&enc, pkt->data(), &len, pkt->data(), pkt->size());
+	EVP_EncryptUpdate(enc, pkt->data(), &len, pkt->data(), pkt->size());
 }
 
 void Client::encryptAppend(pkt_t *src, pkt_t *dst)
@@ -240,18 +256,18 @@ void Client::encryptAppend(pkt_t *src, pkt_t *dst)
 	size_t s = dst->size();
 	dst->resize(s + src->size());
 	int len = 0;
-	EVP_EncryptUpdate(&enc, dst->data() + s, &len, src->data(), src->size());
+	EVP_EncryptUpdate(enc, dst->data() + s, &len, src->data(), src->size());
 }
 
 void Client::decrypt(pkt_t *pkt)
 {
 	int len = 0;
-	EVP_DecryptUpdate(&dec, pkt->data(), &len, pkt->data(), pkt->size());
+	EVP_DecryptUpdate(dec, pkt->data(), &len, pkt->data(), pkt->size());
 }
 
 uint8_t Client::decrypt(uint8_t c)
 {
 	int len = 0;
-	EVP_DecryptUpdate(&dec, &c, &len, &c, 1);
+	EVP_DecryptUpdate(dec, &c, &len, &c, 1);
 	return c;
 }

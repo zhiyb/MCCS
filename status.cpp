@@ -3,6 +3,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/ostreamwrapper.h>
+#include <openssl/bn.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
@@ -36,7 +37,15 @@ Status::~Status()
 
 int Status::keygen()
 {
+#if OPENSSL_VERSION_NUMBER >= 0x010100000
+	BIGNUM *e = BN_new();
+	BN_set_word(e, 65537);
+	rsa = RSA_new();
+	RSA_generate_key_ex(rsa, 1024, e, NULL);
+	BN_free(e);
+#else
 	rsa = RSA_generate_key(1024, 65537, NULL, NULL);
+#endif
 	if (rsa == NULL)
 		return -1;
 	return 0;

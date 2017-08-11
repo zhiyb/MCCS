@@ -66,7 +66,7 @@ private:
 	void tokengen();
 	bool initEncryption();
 
-	EVP_CIPHER_CTX enc, dec;
+	EVP_CIPHER_CTX *enc, *dec;
 
 	Handler *hdr;
 	Player *player;

@@ -10,7 +10,6 @@
 #include <openssl/asn1.h>
 #include <openssl/objects.h>
 #include "status.h"
-#include "logging.h"
 #include "protocols.h"
 #include "chat.h"
 #include "types.h"
@@ -95,8 +94,7 @@ string Status::toJson() const
 	auto &a = d.GetAllocator();
 
 	Value ver(kObjectType);
-	string vname = version();
-	ver.AddMember("name", StringRef(vname.c_str()), a);
+	ver.AddMember("name", StringRef(version().c_str()), a);
 	ver.AddMember("protocol", protocol(), a);
 	d.AddMember("version", ver, a);
 
@@ -106,7 +104,8 @@ string Status::toJson() const
 	d.AddMember("players", player, a);
 
 	Value desc(kObjectType);
-	Chat::Text(description()).write(desc, a);
+	Chat::Text text(description());
+	text.addTo(desc, a);
 	d.AddMember("description", desc, a);
 
 	stringstream ss;

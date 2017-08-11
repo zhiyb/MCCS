@@ -12,7 +12,7 @@ string Message::toJson() const
 {
 	using namespace rapidjson;
 	Document d(kObjectType);
-	write(d, d.GetAllocator());
+	addTo(d, d.GetAllocator());
 	stringstream ss;
 	OStreamWrapper osw(ss);
 	Writer<OStreamWrapper> writer(osw);
@@ -27,7 +27,7 @@ string Message::toText() const
 	return s;
 }
 
-void Text::write(Value &v, Document::AllocatorType &a) const
+void Text::addTo(Value &v, Document::AllocatorType &a) const
 {
 	v.AddMember("text", StringRef(text().c_str()), a);
 }

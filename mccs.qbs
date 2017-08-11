@@ -9,7 +9,10 @@ Project {
             Depends {name: "cpp"}
             cpp.includePaths: ["fast-cpp-csv-parser"]
         }
-        files: ["fast-cpp-csv-parser/**"]
+        files: [
+            "fast-cpp-csv-parser/**",
+            "protocols/338.csv",
+        ]
     }
 
     Product {
@@ -74,8 +77,6 @@ Project {
                 "client.cpp",
                 "client.h",
                 "client_play.cpp",
-                "protocols.cpp",
-                "protocols.h",
             ]
         }
 
@@ -97,6 +98,8 @@ Project {
                 "types.h",
                 "chat.cpp",
                 "chat.h",
+                "protocols.cpp",
+                "protocols.h",
                 "protocols/id.h",
             ]
         }

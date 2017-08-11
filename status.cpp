@@ -40,13 +40,15 @@ int Status::keygen()
 	BIGNUM *e = BN_new();
 	BN_set_word(e, 65537);
 	rsa = RSA_new();
-	RSA_generate_key_ex(rsa, 1024, e, NULL);
+	int ret = RSA_generate_key_ex(rsa, 1024, e, NULL);
 	BN_free(e);
+	if (!ret)
+		return -1;
 #else
 	rsa = RSA_generate_key(1024, 65537, NULL, NULL);
-#endif
 	if (rsa == NULL)
 		return -1;
+#endif
 	return 0;
 }
 

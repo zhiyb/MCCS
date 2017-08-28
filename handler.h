@@ -1,10 +1,10 @@
 #pragma once
 
 #include <thread>
-#include <deque>
+#include <queue>
 #include <mutex>
 #include <random>
-#include <ev++.h>
+#include <uvw.hpp>
 #include "packet.h"
 #include "client.h"
 
@@ -26,25 +26,20 @@ public:
 	void disconnect(int error = 0);
 
 private:
-	bool send();
-	void recv(pkt_t *v);
-	int32_t readVarInt(pkt_t *pkt);
-
 	void process();
-	void ioSocketRCB(ev::io &w, int revents);
-	void ioSocketWCB(ev::io &w, int revents);
-	void tWatchdogCB(ev::timer &w, int revents);
-	void tKeepAliveCB(ev::timer &w, int revents);
+	void recv(pkt_t *v, const uvw::DataEvent &e, size_t *len);
+	int32_t readVarInt(pkt_t *pkt, const uvw::DataEvent &e, size_t *len);
 
 	std::thread *_th;
 	std::minstd_rand _rand;
 
-	ev::io *ioSocketR, *ioSocketW;
-	ev::timer *tWatchdog, *tKeepAlive;
+	std::shared_ptr<uvw::TcpHandle> ioSocket;
+	std::shared_ptr<uvw::AsyncHandle> ioEvent;
+	std::shared_ptr<uvw::TimerHandle> tWatchdog, tKeepAlive;
 
 	int32_t pktLength, pktSize;
 	pkt_t pktRecv;
-	std::deque<uint8_t> sendQueue;
+	std::queue<std::pair<std::unique_ptr<char[]>, int> > pktQueue;
 	std::mutex lck;
 
 	Client c;

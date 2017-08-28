@@ -1,10 +1,11 @@
+#include <chrono>
 #include "tick.h"
-#include "logging.h"
 #include "server.h"
 
 using namespace std;
+using namespace uvw;
 
-static const double period = 0.05;
+static const auto period = chrono::milliseconds(50);
 
 void Tick::start()
 {
@@ -22,42 +23,31 @@ void Tick::stop()
 
 void Tick::timerThread()
 {
-	struct ev_loop *loop = ev_loop_new(EVFLAG_AUTO | EVFLAG_NOENV);
-	ev::timer timer(loop);
-	timer.set<Tick, &Tick::timerCB>(this);
-	timer.set(period, period);
-	timer.start();
-	while (ev_run(loop, 0));
-	ev_loop_destroy(loop);
-}
-
-void Tick::timerCB(ev::timer &w, int revents)
-{
-	if (_stop)
-		w.stop();
-	_tick++;
-	_async->send();
+	auto loop = Loop::create();
+	shared_ptr<TimerHandle> timer = loop->resource<TimerHandle>();
+	timer->on<TimerEvent>([&](const TimerEvent &e, TimerHandle &timer) {
+		if (_stop)
+			timer.close();
+		_tick++;
+		_async->send();
+	});
+	timer->start(period, period);
+	loop->run();
 }
 
 void Tick::workerThread()
 {
-	struct ev_loop *loop = ev_loop_new(EVFLAG_AUTO | EVFLAG_NOENV);
-	ev::async async(loop);
-	async.set<Tick, &Tick::workerCB>(this);
-	async.start();
-	_async = &async;
+	auto loop = Loop::create();
+	_async = loop->resource<AsyncHandle>();
+	_async->on<AsyncEvent>([&](const AsyncEvent &e, AsyncHandle &async) {
+		if (_stop)
+			async.close();
+		uint32_t diff = _tick - _wTick;
+		_wTick = _tick;
+		server->tick(diff);
+	});
 	_wTick = _tick;
 	thread tick(&Tick::timerThread, ref(*this));
-	while (ev_run(loop, 0));
+	loop->run();
 	tick.join();
-	ev_loop_destroy(loop);
-}
-
-void Tick::workerCB(ev::async &w, int revents)
-{
-	uint32_t diff = _tick - _wTick;
-	_wTick = _tick;
-	server->tick(diff);
-	if (_stop)
-		w.stop();
 }

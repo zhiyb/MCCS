@@ -245,18 +245,9 @@ bool Client::initEncryption()
 	return true;
 }
 
-void Client::encrypt(pkt_t *pkt)
+void Client::encrypt(void *dst, void *src, int size)
 {
-	int len = 0;
-	EVP_EncryptUpdate(enc, pkt->data(), &len, pkt->data(), pkt->size());
-}
-
-void Client::encryptAppend(pkt_t *src, pkt_t *dst)
-{
-	size_t s = dst->size();
-	dst->resize(s + src->size());
-	int len = 0;
-	EVP_EncryptUpdate(enc, dst->data() + s, &len, src->data(), src->size());
+	EVP_EncryptUpdate(enc, (uint8_t *)dst, &size, (uint8_t *)src, size);
 }
 
 void Client::decrypt(pkt_t *pkt)

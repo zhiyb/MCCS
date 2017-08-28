@@ -27,8 +27,7 @@ public:
 	void keepAlive();
 	void logDisconnect(int e);
 
-	void encrypt(pkt_t *pkt);
-	void encryptAppend(pkt_t *src, pkt_t *dst);
+	void encrypt(void *dst, void *src, int size);
 	void decrypt(pkt_t *pkt);
 	uint8_t decrypt(uint8_t c);
 

@@ -33,16 +33,38 @@ Project {
         files: ["spdlog/**"]
     }
 
+    Product {
+        name: "libuv"
+        Export {
+            Depends {name: "cpp"}
+            cpp.includePaths: ["libuv/include"]
+            cpp.libraryPaths: ["libuv/build/.libs"]
+            cpp.staticLibraries: ["uv"]
+        }
+        files: ["libuv/**"]
+    }
+
+    Product {
+        name: "uvw"
+        Export {
+            Depends {name: "cpp"}
+            cpp.includePaths: ["uvw/src"]
+            Depends {name: "libuv"}
+        }
+        files: ["uvw/**"]
+    }
+
     CppApplication {
         consoleApplication: true
-        cpp.dynamicLibraries: ["ev", "crypto", "pthread", "m"]
+        cpp.dynamicLibraries: ["crypto", "pthread", "m"]
         cpp.commonCompilerFlags: [
             "-Wno-unused-parameter",
         ]
-        cpp.cxxLanguageVersion: "c++11"
+        cpp.cxxLanguageVersion: "c++14"
         Depends {name: "fast-cpp-csv-parser"}
         Depends {name: "rapidjson"}
         Depends {name: "spdlog"}
+        Depends {name: "uvw"}
 
         files: [
             "README.md",

@@ -38,8 +38,12 @@ void Network::close()
 
 bool Network::listen()
 {
+#ifdef __WIN32__
+	sd.listen = listen4();
+#else
 	// Listening on IPv6 will also bind to IPv4 (see flag IPV6_V6ONLY)
 	sd.listen = listen6();
+#endif
 	return sd.listen != -1;
 }
 

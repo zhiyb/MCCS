@@ -1,10 +1,12 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
-#include <arpa/inet.h>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#ifdef __WIN32__
+#include <winsock2.h>
+#endif
 #include "packet.h"
 
 void pktPushInt(pkt_t *pkt, int32_t v)
@@ -76,7 +78,7 @@ void pktPushLook(pkt_t *pkt, const fLook_t &look)
 int8_t Packet::readByte()
 {
 	if (len < 1) {
-		_errno = ENODATA;
+		_errno = EPROTO;
 		return 0;
 	}
 	int8_t c = *p++;
@@ -87,7 +89,7 @@ int8_t Packet::readByte()
 int32_t Packet::readInt()
 {
 	if (len < 4) {
-		_errno = ENODATA;
+		_errno = EPROTO;
 		return 0;
 	}
 	int32_t v = 0;
@@ -100,7 +102,7 @@ int32_t Packet::readInt()
 int64_t Packet::readLong()
 {
 	if (len < 8) {
-		_errno = ENODATA;
+		_errno = EPROTO;
 		return 0;
 	}
 	int64_t v = 0;
@@ -179,7 +181,7 @@ std::string Packet::readString(uint32_t size)
 bool Packet::readByteArray(std::vector<uint8_t> *v, uint32_t size)
 {
 	if (len < size) {
-		_errno = ENODATA;
+		_errno = EPROTO;
 		return false;
 	}
 	std::vector<uint8_t> vec(p, p + size);
@@ -191,7 +193,7 @@ bool Packet::readByteArray(std::vector<uint8_t> *v, uint32_t size)
 
 uint16_t Packet::readUShort()
 {
-	_errno = len < 2 ? ENODATA : 0;
+	_errno = len < 2 ? EPROTO : 0;
 	if (err())
 		return 0;
 	uint16_t s;

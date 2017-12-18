@@ -54,6 +54,18 @@ Project {
         files: ["uvw/**"]
     }
 
+    Product {
+        name: "openssl"
+        Export {
+            Depends {name: "cpp"}
+            Properties {
+                condition: qbs.targetOS.contains("windows")
+                cpp.includePaths: ["D:\\Programs\\Qt\\Tools\\mingw530_32\\opt\\include"]
+                cpp.libraryPaths: ["D:\\Programs\\Qt\\Tools\\mingw530_32\\opt\\lib"]
+            }
+        }
+    }
+
     CppApplication {
         consoleApplication: true
         cpp.dynamicLibraries: ["crypto", "pthread", "m"]
@@ -65,6 +77,12 @@ Project {
         Depends {name: "rapidjson"}
         Depends {name: "spdlog"}
         Depends {name: "uvw"}
+        Depends {name: "openssl"}
+
+        Properties {
+            condition: qbs.targetOS.contains("windows")
+            cpp.dynamicLibraries: outer.concat(["Ws2_32"]);
+        }
 
         files: [
             "README.md",

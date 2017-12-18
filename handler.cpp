@@ -1,8 +1,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#ifdef __WIN32__
+#include <winsock2.h>
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
+#endif
 #include <string>
 #include <sstream>
 #include <iomanip>

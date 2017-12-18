@@ -1,8 +1,12 @@
 #pragma once
 
+#ifdef __WIN32__
+#include <winsock2.h>
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#endif
 #include <stdint.h>
 #include <string>
 #include <unordered_set>
@@ -26,6 +30,7 @@ public:
 	static std::string saddrtostr(struct sockaddr_in *addr);
 
 private:
+	int getErrno();
 	int listen4();
 	int listen6();
 	void gc();

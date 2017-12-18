@@ -30,6 +30,10 @@ int main(int argc, char *argv[])
 	}
 
 	Network n;
+	if (n.err() != 0) {
+		logger->error("Network initilisation failed");
+		return 1;
+	}
 	if (!n.listen()) {
 		logger->error("Cannot listen on {}", n.host().c_str());
 		return 1;

@@ -1,7 +1,11 @@
+#ifdef __WIN32__
+#include <winsock2.h>
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#endif
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -13,6 +17,12 @@
 Network::Network()
 {
 	sd.listen = -1;
+	_errno = 0;
+#ifdef __WIN32__
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
+		_errno = WSAGetLastError();
+#endif
 }
 
 void Network::close()
@@ -36,13 +46,14 @@ bool Network::listen()
 int Network::listen4()
 {
 	int flag = 1;
+	_errno = 0;
 	int sd = ::socket(AF_INET, SOCK_STREAM, 0);
 	if (sd == -1) {
-		logger->warn("Cannot create IPv4 socket: {}", strerror(errno));
+		logger->warn("Cannot create IPv4 socket: {}", strerror(getErrno()));
 		goto close;
 	}
-	if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int)) == -1) {
-		logger->warn("Cannot configure IPv4 socket: {}", strerror(errno));
+	if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (const char *)&flag, sizeof(int)) == -1) {
+		logger->warn("Cannot configure IPv4 socket: {}", strerror(getErrno()));
 		goto close;
 	}
 	struct sockaddr_in addr;
@@ -51,11 +62,11 @@ int Network::listen4()
 	addr.sin_port = nport();
 	addr.sin_addr.s_addr = naddr();
 	if (::bind(sd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-		logger->warn("Cannot bind IPv4 socket: {}", strerror(errno));
+		logger->warn("Cannot bind IPv4 socket: {}", strerror(getErrno()));
 		goto close;
 	}
 	if (::listen(sd, 16) == -1) {
-		logger->warn("Cannot listen on IPv4: {}", strerror(errno));
+		logger->warn("Cannot listen on IPv4: {}", strerror(getErrno()));
 		goto close;
 	}
 	return sd;
@@ -63,20 +74,21 @@ int Network::listen4()
 close:
 	if (sd != -1)
 		::close(sd);
-	_errno = errno;
+	_errno = getErrno();
 	return -1;
 }
 
 int Network::listen6()
 {
 	int flag = 1;
+	_errno = 0;
 	int sd = ::socket(AF_INET6, SOCK_STREAM, 0);
 	if (sd == -1) {
-		logger->warn("Cannot create IPv6 socket: {}", strerror(errno));
+		logger->warn("Cannot create IPv6 socket: {}", strerror(getErrno()));
 		goto close;
 	}
-	if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int)) == -1) {
-		logger->warn("Cannot configure IPv6 socket: {}", strerror(errno));
+	if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (const char *)&flag, sizeof(int)) == -1) {
+		logger->warn("Cannot configure IPv6 socket: {}", strerror(getErrno()));
 		goto close;
 	}
 	struct sockaddr_in6 addr;
@@ -85,11 +97,11 @@ int Network::listen6()
 	addr.sin6_port = nport();
 	addr.sin6_addr = naddr6();
 	if (::bind(sd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-		logger->warn("Cannot bind IPv6 socket: {}", strerror(errno));
+		logger->warn("Cannot bind IPv6 socket: {}", strerror(getErrno()));
 		goto close;
 	}
 	if (::listen(sd, 16) == -1) {
-		logger->warn("Cannot listen on IPv6: {}", strerror(errno));
+		logger->warn("Cannot listen on IPv6: {}", strerror(getErrno()));
 		goto close;
 	}
 	return sd;
@@ -97,7 +109,7 @@ int Network::listen6()
 close:
 	if (sd != -1)
 		::close(sd);
-	_errno = errno;
+	_errno = getErrno();
 	return -1;
 }
 
@@ -105,12 +117,13 @@ bool Network::process()
 {
 	logger->info("Network processing started");
 	while (true) {
-		int s = accept4(sd.listen, NULL, 0, SOCK_NONBLOCK);
+		int s = accept(sd.listen, NULL, 0);
 		if (s < 0)
 			goto error;
-		int flag = 1;
+		int flags = 1;
 		setsockopt(s, IPPROTO_TCP, TCP_NODELAY,
-				(void *)&flag, sizeof(flag));
+				(const char *)&flags, sizeof(flags));
+		// Start handler process
 		Handler *h = new Handler(s, rand());
 		std::thread *th = new std::thread(Handler::threadFunc, h);
 		h->thread(th);
@@ -119,7 +132,7 @@ bool Network::process()
 	}
 	return true;
 error:
-	_errno = errno;
+	_errno = getErrno();
 	return false;
 }
 
@@ -148,4 +161,15 @@ std::string Network::host(uint32_t addr, uint16_t port)
 std::string Network::saddrtostr(struct sockaddr_in *addr)
 {
 	return host(addr->sin_addr.s_addr, addr->sin_port);
+}
+
+int Network::getErrno()
+{
+#ifdef __WIN32__
+	int e;
+	_get_errno(&e);
+	return e;
+#else
+	return errno;
+#endif
 }
